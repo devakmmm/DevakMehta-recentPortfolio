@@ -70,18 +70,26 @@ export default function HeroSection() {
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-transparent to-background" />
 
+        {/* Mask: cover unwanted bright round area at bottom-right */}
+        <div
+          aria-hidden
+          className="absolute right-0 bottom-0 pointer-events-none"
+          style={{
+            width: "36rem",
+            height: "36rem",
+            transform: "translate(25%, 15%)",
+            background:
+              "radial-gradient(circle at 60% 60%, rgba(6,7,12,0.95), rgba(6,7,12,0.85) 30%, transparent 65%)"
+          }}
+        />
+
         <motion.div
           style={{ willChange: "transform, opacity" }}
           className="absolute -top-32 left-1/2 h-[34rem] w-[34rem] -translate-x-1/2 rounded-full blur-[36px] opacity-25 bg-[hsl(var(--glow-purple))]"
           animate={{ x: [0, 18, -14, 0], y: [0, -10, 6, 0] }}
           transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
         />
-        <motion.div
-          style={{ willChange: "transform, opacity" }}
-          className="absolute -bottom-40 right-[-8rem] h-[30rem] w-[30rem] rounded-full blur-[36px] opacity-18 bg-[hsl(var(--glow-pink))]"
-          animate={{ x: [0, -22, 12, 0], y: [0, 12, -8, 0] }}
-          transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
-        />
+        {/* Right-side decorative glow removed to improve animation smoothness */}
       </div>
 
       <div className="relative z-10 container mx-auto px-6 pt-32 pb-20">
