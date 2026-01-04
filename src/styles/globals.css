@@ -71,12 +71,12 @@
   }
 
   .glow-purple {
-    box-shadow: 0 0 40px hsl(var(--glow-purple) / 0.3),
-      0 0 80px hsl(var(--glow-purple) / 0.15);
+    box-shadow: 0 0 20px hsl(var(--glow-purple) / 0.28),
+      0 0 40px hsl(var(--glow-purple) / 0.14);
   }
 
   .glow-text {
-    text-shadow: 0 0 30px hsl(var(--glow-purple) / 0.5);
+    text-shadow: 0 0 12px hsl(var(--glow-purple) / 0.45);
   }
 
   .glass-card {
@@ -122,15 +122,18 @@
 
   .nav-link::after {
     content: "";
-    @apply absolute -bottom-1 left-0 w-0 h-0.5 transition-all duration-300;
-    background: linear-gradient(
-      90deg,
-      hsl(var(--glow-purple)),
-      hsl(var(--glow-pink))
-    );
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -0.25rem;
+    height: 2px;
+    background: linear-gradient(90deg, hsl(var(--glow-purple)), hsl(var(--glow-pink)));
+    transform-origin: left;
+    transform: scaleX(0);
+    transition: transform 300ms ease;
   }
 
   .nav-link:hover::after {
-    @apply w-full;
+    transform: scaleX(1);
   }
 }
