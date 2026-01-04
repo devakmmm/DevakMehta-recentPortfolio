@@ -80,7 +80,7 @@
   }
 
   .glass-card {
-    @apply backdrop-blur-xl border border-border/50;
+    @apply backdrop-blur-md border border-border/50;
     background: linear-gradient(
       135deg,
       hsl(var(--card) / 0.8) 0%,

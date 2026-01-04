@@ -62,7 +62,7 @@ export default function HeroSection() {
           src={heroSpace}
           alt="Cosmic background"
           className="w-full h-full object-cover object-center"
-          loading="eager"
+          loading="lazy"
           initial={{ scale: 1.05, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
@@ -71,12 +71,14 @@ export default function HeroSection() {
         <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-transparent to-background" />
 
         <motion.div
-          className="absolute -top-32 left-1/2 h-[34rem] w-[34rem] -translate-x-1/2 rounded-full blur-[90px] opacity-25 bg-[hsl(var(--glow-purple))]"
+          style={{ willChange: "transform, opacity" }}
+          className="absolute -top-32 left-1/2 h-[34rem] w-[34rem] -translate-x-1/2 rounded-full blur-[36px] opacity-25 bg-[hsl(var(--glow-purple))]"
           animate={{ x: [0, 18, -14, 0], y: [0, -10, 6, 0] }}
           transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
         />
         <motion.div
-          className="absolute -bottom-40 right-[-8rem] h-[30rem] w-[30rem] rounded-full blur-[90px] opacity-18 bg-[hsl(var(--glow-pink))]"
+          style={{ willChange: "transform, opacity" }}
+          className="absolute -bottom-40 right-[-8rem] h-[30rem] w-[30rem] rounded-full blur-[36px] opacity-18 bg-[hsl(var(--glow-pink))]"
           animate={{ x: [0, -22, 12, 0], y: [0, 12, -8, 0] }}
           transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
         />
@@ -163,11 +165,13 @@ export default function HeroSection() {
           animate={{ y: [0, 10, 0] }}
           transition={{ duration: 2, repeat: Infinity }}
           className="w-6 h-10 rounded-full border-2 border-muted-foreground/30 flex items-start justify-center p-2"
+          style={{ willChange: "transform" }}
         >
           <motion.div
             animate={{ opacity: [0.5, 1, 0.5] }}
             transition={{ duration: 2, repeat: Infinity }}
             className="w-1 h-2 rounded-full bg-primary"
+            style={{ willChange: "opacity" }}
           />
         </motion.div>
       </motion.div>
