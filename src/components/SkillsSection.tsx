@@ -61,9 +61,9 @@ export default function SkillsSection() {
               {skills.map((skill, index) => (
                 <motion.div
                   key={skill.name}
-                  initial={{ opacity: 0, x: -50 }}
+                  initial={{ opacity: 0, x: -30 }}
                   animate={isInView ? { opacity: 1, x: 0 } : {}}
-                  transition={{ delay: 0.4 + index * 0.1, duration: 0.6 }}
+                  transition={{ delay: 0.25 + index * 0.08, duration: 0.5 }}
                 >
                   <div className="flex justify-between mb-2">
                     <span className="font-medium text-foreground">{skill.name}</span>
@@ -73,7 +73,7 @@ export default function SkillsSection() {
                     <motion.div
                       initial={{ width: 0 }}
                       animate={isInView ? { width: `${skill.level}%` } : {}}
-                      transition={{ delay: 0.6 + index * 0.1, duration: 1, ease: "easeOut" }}
+                      transition={{ delay: 0.35 + index * 0.08, duration: 0.8, ease: "easeOut" }}
                       className="h-full rounded-full"
                       style={{
                         background:
