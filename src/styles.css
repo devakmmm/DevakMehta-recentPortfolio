@@ -54,7 +54,6 @@ canvas {
 .scene-bg canvas {
   width: 100% !important;
   height: 100% !important;
-  pointer-events: auto; /* the desk takes clicks (the board on the laptop); the wrapper stays pass-through */
 }
 
 .scrim {
@@ -1523,3 +1522,16 @@ canvas {
     font-size: 11.5px;
   }
 }
+
+/* ---------- Hero ink for the desk (override) ----------
+   The reference set cream text over a dark character; here the hero sits on the sage desk scene,
+   so the hero layer uses a deep green-black ink with a faint cream halo. Later sections keep cream:
+   the scrim darkens the scene there. */
+.about-title { color: #1f261f; text-shadow: 0 1px 0 rgba(244, 241, 234, 0.35), 0 0 18px rgba(244, 241, 234, 0.35); }
+.about-body { color: rgba(31, 38, 31, 0.88); font-size: clamp(13px, 1.15vw, 17px); text-shadow: 0 0 14px rgba(244, 241, 234, 0.45); }
+.hero-meta { color: rgba(31, 38, 31, 0.62); }
+.hero-meta .hm-name { color: #1f261f; }
+.hero-mark { color: rgba(31, 38, 31, 0.45); }
+.scroll-cue { color: rgba(31, 38, 31, 0.6); }
+.scroll-cue-track { background: linear-gradient(rgba(31, 38, 31, 0.45), rgba(31, 38, 31, 0.06)); }
+.scroll-cue-dot { background: rgba(31, 38, 31, 0.7); }

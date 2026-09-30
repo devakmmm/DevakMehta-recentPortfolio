@@ -74,7 +74,6 @@ const M = {
   card: std('#efe9dc', { roughness: 0.85 }),
   stickerPaper: std('#f7f4ee', { roughness: 0.6 }),
   fur: std('#141416', { roughness: 0.95 }),
-  furWhite: std('#f2efe8', { roughness: 0.95 }),
   catEye: std('#c9d36a', { roughness: 0.25, emissive: '#3b4a10', emissiveIntensity: 0.25 }),
   pupil: std('#0a0a0a', { roughness: 0.3 }),
   pink: std('#e2a0a8', { roughness: 0.7 }),
@@ -228,23 +227,23 @@ const hookColors = ['#e86b6b', '#58a6ff', '#5fbf6a', '#f0a15a', '#7fe0e8', '#9b7
 hookColors.forEach((c, i) => card.add(cyl(mm(3), mm(1.2), std(c, { roughness: 0.5 }), `hooks-dot-${i}`, [(i % 3 - 1) * 0.02, 0.0036, (i < 3 ? -0.002 : 0.014)], [0, 0, 0], 20)))
 scene.add(card)
 
-// ---- the cat: black and white, sitting on the front-right corner, eyes that follow the cursor ----
-const catPos = [0.56, TOP, 0.27]
-const cat = group('cat', catPos, -0.55)
-cat.scale.setScalar(0.8)
+// ---- the cat: all black, sitting at the back-right, eyes that follow the cursor ----------------
+const catPos = [0.56, TOP, -0.29]
+const cat = group('cat', catPos, -0.35)
+cat.scale.setScalar(0.7)
 const sph = (r, material, name, pos, scale = [1, 1, 1]) => {
   const m = mesh(new THREE.SphereGeometry(r, 28, 18), material, name, pos)
   m.scale.set(...scale)
   return m
 }
 cat.add(sph(0.07, M.fur, 'cat-body', [0, 0.085, -0.01], [1, 1.25, 0.95]))
-cat.add(sph(0.046, M.furWhite, 'cat-chest', [0, 0.08, 0.042]))
+cat.add(sph(0.046, M.fur, 'cat-chest', [0, 0.08, 0.042]))
 cat.add(mesh(new THREE.CylinderGeometry(0.017, 0.019, 0.07, 16), M.fur, 'cat-leg-l', [-0.03, 0.045, 0.058]))
 cat.add(mesh(new THREE.CylinderGeometry(0.017, 0.019, 0.07, 16), M.fur, 'cat-leg-r', [0.03, 0.045, 0.058]))
-cat.add(sph(0.019, M.furWhite, 'cat-paw-l', [-0.03, 0.014, 0.072], [1, 0.75, 1.2]))
-cat.add(sph(0.019, M.furWhite, 'cat-paw-r', [0.03, 0.014, 0.072], [1, 0.75, 1.2]))
+cat.add(sph(0.019, M.fur, 'cat-paw-l', [-0.03, 0.014, 0.072], [1, 0.75, 1.2]))
+cat.add(sph(0.019, M.fur, 'cat-paw-r', [0.03, 0.014, 0.072], [1, 0.75, 1.2]))
 cat.add(sph(0.052, M.fur, 'cat-head', [0, 0.20, 0.03]))
-cat.add(sph(0.03, M.furWhite, 'cat-muzzle', [0, 0.183, 0.066], [1.25, 0.8, 0.9]))
+cat.add(sph(0.03, M.fur, 'cat-muzzle', [0, 0.183, 0.066], [1.25, 0.8, 0.9]))
 cat.add(sph(0.006, M.pink, 'cat-nose', [0, 0.194, 0.093]))
 for (const [side, sx] of [['l', -1], ['r', 1]]) {
   cat.add(mesh(new THREE.ConeGeometry(0.02, 0.04, 4), M.fur, `cat-ear-${side}`, [sx * 0.033, 0.245, 0.02], [0.1, Math.PI / 4, sx * -0.35]))
@@ -266,7 +265,7 @@ for (const [side, sx] of [['l', -1], ['r', 1]]) {
     new THREE.Vector3(0.12, 0.012, 0.03),
   ])
   cat.add(mesh(new THREE.TubeGeometry(tail, 24, 0.011, 10, false), M.fur, 'cat-tail'))
-  cat.add(sph(0.012, M.furWhite, 'cat-tail-tip', [0.12, 0.012, 0.034]))
+  cat.add(sph(0.012, M.fur, 'cat-tail-tip', [0.12, 0.012, 0.034]))
 }
 cat.add(mesh(new THREE.TorusGeometry(0.041, 0.006, 10, 32), M.collar, 'cat-collar', [0, 0.16, 0.03], [Math.PI / 2 - 0.35, 0, 0]))
 cat.add(cyl(mm(8), mm(1.5), M.brass, 'cat-tag', [0, 0.135, 0.072], [Math.PI / 2 - 0.2, 0, 0], 20))

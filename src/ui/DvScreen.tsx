@@ -4,7 +4,7 @@ import { Html } from '@react-three/drei'
 // The floating "click me" tag above the laptop screen. The board itself is a canvas texture on the
 // screen mesh (ui/dvBoard.ts); this tag is screen-space HTML anchored to the glass, hidden after the
 // first run (dvBoard emits `dv-runs`).
-export default function DvScreen() {
+export default function DvScreen({ onTap }: { onTap?: () => void }) {
   const [runs, setRuns] = useState(0)
   const [running, setRunning] = useState(false)
   useEffect(() => {
@@ -24,9 +24,16 @@ export default function DvScreen() {
   }, [])
   if (runs > 0 || running) return null
   return (
-    <Html position={[0, 0.125, 0]} center zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
+    <Html position={[0, 0.082, 0]} center zIndexRange={[20, 0]} style={{ pointerEvents: 'auto' }}>
       <div
+        className="dv-tag"
+        role="button"
+        onPointerDown={(e) => {
+          e.stopPropagation()
+          if (onTap) onTap()
+        }}
         style={{
+          cursor: 'pointer',
           fontFamily: 'Helvetica Neue, system-ui, sans-serif',
           fontSize: 12,
           letterSpacing: '.28em',

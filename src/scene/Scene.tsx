@@ -307,6 +307,63 @@ function Man2({
     return () => window.removeEventListener('dv-state', onState)
   }, [])
 
+  // Clicks for the board. The scrollable content layer sits above the canvas and swallows pointer
+  // events, so the canvas never sees them; listen on window, raycast against the laptop screen, and
+  // hand the hit to the board. Links, buttons and the gallery keep their own clicks.
+  const laptopLid = useMemo(() => {
+    let lid: any = null
+    model.traverse((o: any) => {
+      if (o.name === 'laptop-screen') lid = o
+    })
+    return lid
+  }, [model])
+  useEffect(() => {
+    if (!board || !laptopGlass) return
+    const ray = new THREE.Raycaster()
+    const ndc = new THREE.Vector2()
+    const targets = laptopLid ? [laptopGlass, laptopLid] : [laptopGlass]
+    const hit = (ev: PointerEvent) => {
+      const cam: any = get().camera
+      ndc.set((ev.clientX / window.innerWidth) * 2 - 1, -((ev.clientY / window.innerHeight) * 2 - 1))
+      ray.setFromCamera(ndc, cam)
+      const r = ray.intersectObjects(targets, false)
+      return r.length ? r[0] : null
+    }
+    const interactive = (ev: PointerEvent) => {
+      const t = ev.target as any
+      return !!(t && t.closest && t.closest('a, button, input, textarea, .wk-gallery, .wk-detail, .dv-tag'))
+    }
+    const onDown = (ev: PointerEvent) => {
+      if (ev.button !== 0 || interactive(ev)) return
+      const h = hit(ev)
+      if (!h) return
+      if (h.object === laptopGlass && h.uv) board.click(h.uv.x, 1 - h.uv.y)
+      else board.click(0.5, 0.5) // the lid counts too: a generous target
+    }
+    let last = 0
+    const onMove = (ev: PointerEvent) => {
+      const now = performance.now()
+      if (now - last < 40) return
+      last = now
+      if (interactive(ev)) return
+      const h = hit(ev)
+      if (h && h.object === laptopGlass && h.uv) {
+        board.hover(h.uv.x, 1 - h.uv.y)
+        document.body.style.cursor = board.running() ? '' : 'pointer'
+      } else {
+        board.hover(null)
+        if (document.body.style.cursor === 'pointer') document.body.style.cursor = ''
+      }
+    }
+    window.addEventListener('pointerdown', onDown)
+    window.addEventListener('pointermove', onMove)
+    return () => {
+      window.removeEventListener('pointerdown', onDown)
+      window.removeEventListener('pointermove', onMove)
+      document.body.style.cursor = ''
+    }
+  }, [board, laptopGlass, laptopLid, get])
+
   // window 级鼠标输入（smouse 为缓动后的值）
   const mouse = useRef({ x: 0, y: 0 })
   const smouse = useRef({ x: 0, y: 0 })
@@ -562,30 +619,8 @@ function Man2({
       rotation={[0, (rotationY * Math.PI) / 180, 0]}
       scale={scale}
     >
-      <primitive
-        object={model}
-        onClick={(ev: any) => {
-          if (board && ev.object && ev.object.name === 'laptop-glass' && ev.uv) {
-            ev.stopPropagation()
-            board.click(ev.uv.x, 1 - ev.uv.y)
-          }
-        }}
-        onPointerMove={(ev: any) => {
-          if (!board) return
-          if (ev.object && ev.object.name === 'laptop-glass' && ev.uv) {
-            board.hover(ev.uv.x, 1 - ev.uv.y)
-            document.body.style.cursor = board.running() ? '' : 'pointer'
-          } else {
-            board.hover(null)
-            document.body.style.cursor = ''
-          }
-        }}
-        onPointerOut={() => {
-          if (board) board.hover(null)
-          document.body.style.cursor = ''
-        }}
-      />
-      {laptopGlass && createPortal(<DvScreen />, laptopGlass)}
+      <primitive object={model} />
+      {laptopGlass && createPortal(<DvScreen onTap={() => board && board.click(0.5, 0.5)} />, laptopGlass)}
     </group>
   )
 }

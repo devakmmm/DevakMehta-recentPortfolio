@@ -68,9 +68,9 @@ test('the desk has its story parts', () => {
   assert.ok(!has('mug') && !has('mug-initials'), 'the mug is gone')
 })
 
-// The cat: black and white, sitting on the desk corner, eyes that follow the cursor (the only nodes
+// The cat: all black, sitting at the back of the desk, eyes that follow the cursor (the only nodes
 // whose names contain "eye", so the scene's eye-follow drives them and nothing else).
-test('a black and white cat sits on the desk, and its eyes are the eyes', () => {
+test('a black cat sits on the desk, and its eyes are the eyes', () => {
   const g = readGlbJson(GLB)
   const names = (g.nodes || []).map((n) => n.name || '')
   for (const n of ['cat', 'cat-body', 'cat-chest', 'cat-head', 'cat-muzzle', 'cat-ear-l', 'cat-ear-r', 'cat-eye-l', 'cat-eye-r', 'cat-nose', 'cat-tail', 'cat-collar', 'cat-tag']) {
@@ -84,10 +84,10 @@ test('a black and white cat sits on the desk, and its eyes are the eyes', () => 
 
 // A photo frame that stays hidden until public/images/photo.jpg exists (the scene shows it at runtime),
 // and the cat scaled down a little.
-test('the desk has a photo frame, and the cat is a little smaller', () => {
+test('the desk has a photo frame, and the cat is smaller still', () => {
   const g = readGlbJson(GLB)
   const names = (g.nodes || []).map((n) => n.name || '')
   for (const n of ['photo-frame', 'frame-photo']) assert.ok(names.includes(n), `missing: ${n}`)
   const cat = g.nodes.find((n) => n.name === 'cat')
-  assert.ok(cat && cat.scale && Math.abs(cat.scale[0] - 0.8) < 1e-6, `cat scale should be 0.8, got ${cat && cat.scale}`)
+  assert.ok(cat && cat.scale && Math.abs(cat.scale[0] - 0.7) < 1e-6, `cat scale should be 0.7, got ${cat && cat.scale}`)
 })
