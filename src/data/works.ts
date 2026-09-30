@@ -72,7 +72,7 @@ const SECTIONS: WorkSection[] = [
     title: 'Hardware',
     tagline: 'an ESP32, a webcam, a spare monitor',
     items: [
-      { name: 'The puck', meta: 'zero-library firmware, three bugs on first power-on', slug: 'the-puck' },
+      { name: 'The puck', meta: 'a talking assistant on the desk, the model on the laptop', slug: 'the-puck' },
       { name: "D.V's Lab", meta: 'hand-tracked 3D, own WebGL renderer', slug: 'dv-lab' },
       { name: 'Robotics lab', meta: 'policies on an integrated GPU, sim first', slug: 'robotics-lab' },
     ],

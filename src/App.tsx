@@ -1,4 +1,4 @@
-import { Suspense, useRef, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { motion, useScroll, useTransform, type MotionValue } from 'framer-motion'
 import * as THREE from 'three'
@@ -112,6 +112,32 @@ export default function App() {
   // 首屏装饰画框/角标：滚动后淡出
   const heroChromeOpacity = useTransform(scrollY, [0, 280], [1, 0])
 
+  // First person at the laptop (store.pov): the page layers fade while the camera is at the screen
+  // (html.pov, styles.css), scroll / touch / Esc bring the desk back, and the layers return once
+  // the camera is nearly home.
+  const pov = useStore((s) => s.pov)
+  const setPov = useStore((s) => s.setPov)
+  useEffect(() => {
+    const root = document.documentElement
+    if (!pov) {
+      const t = window.setTimeout(() => root.classList.remove('pov'), 700)
+      return () => window.clearTimeout(t)
+    }
+    root.classList.add('pov')
+    const leave = () => setPov(false)
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') leave()
+    }
+    window.addEventListener('wheel', leave, { passive: true })
+    window.addEventListener('touchmove', leave, { passive: true })
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('wheel', leave)
+      window.removeEventListener('touchmove', leave)
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [pov, setPov])
+
   return (
     <>
       {/* 加载遮罩：模型全部加载完成前覆盖全屏，完成后淡出 */}
@@ -165,12 +191,17 @@ export default function App() {
         <span className="hero-mark br">+</span>
         <div className="hero-meta hm-tl">
           <span className="hm-name">Devak Mehta</span>
-          <span>Engineer &amp; Builder</span>
+          <span>Code · Hardware · Models</span>
         </div>
         <div className="hero-meta hm-tr">Portfolio — 2026</div>
-        <div className="hero-meta hm-bl">Code · Hardware · Models</div>
+        <div className="hero-meta hm-bl">AI Engineer</div>
         <div className="hero-meta hm-right">One laptop, integrated GPU</div>
       </motion.div>
+
+      {/* first person at the laptop: the way back */}
+      <button className="pov-back" type="button" onClick={() => setPov(false)} aria-hidden={!pov} tabIndex={pov ? 0 : -1}>
+        ← Back to the desk <small>scroll or Esc</small>
+      </button>
 
       {/* 全屏胶片噪点蒙层（multiply 混合） */}
       <NoiseOverlay />

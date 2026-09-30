@@ -42,11 +42,21 @@ function emit(name: string, detail: unknown) {
   window.dispatchEvent(new CustomEvent(name, { detail }))
 }
 
+// the visitor's own clock, in the menu bar
+function clock() {
+  const d = new Date()
+  return `${d.toLocaleDateString([], { weekday: 'short' })} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+}
+
 export function createDvBoard() {
+  // drawn at 2× on anything wider than a phone: first person at the laptop (scene/Scene.tsx) puts
+  // this canvas across the whole view, and text drawn at 1× goes soft there
+  const S = typeof window !== 'undefined' && window.innerWidth > 640 ? 2 : 1
   const canvas = document.createElement('canvas')
-  canvas.width = W
-  canvas.height = H
+  canvas.width = W * S
+  canvas.height = H * S
   const ctx = canvas.getContext('2d') as CanvasRenderingContext2D
+  ctx.scale(S, S)
   const texture = new THREE.CanvasTexture(canvas)
   texture.colorSpace = THREE.SRGBColorSpace
   texture.anisotropy = 4
@@ -180,6 +190,12 @@ export function createDvBoard() {
       ctx.fillStyle = 'rgba(244,241,234,.035)'
       ctx.fillRect(0, 0, W, H)
     }
+
+    // the menu bar: whose laptop this is, and the visitor's own clock
+    ctx.fillStyle = 'rgba(244,241,234,.05)'
+    ctx.fillRect(0, 0, W, 26)
+    label('Devak Mehta · AI Engineer', 28, 17, 11, INK, { spacing: 2.5, upper: true })
+    label(clock(), W - 28, 17, 11, MUTED, { align: 'right', font: MONO })
 
     // header
     label('D.V · session board', 28, 52, 15, ACCENT, { spacing: 4, upper: true })

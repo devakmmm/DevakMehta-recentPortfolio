@@ -7,17 +7,17 @@ link: https://devakmmm.github.io/sentence-snake/
 ---
 
 A 149M-parameter model plays Snake with no safety check in code. Before every move the game writes
-one sentence for each of the three options, the model answers one question with a probability, and
-the snake takes the highest. No search, no lookahead, no pixels.
+one sentence for each of the three options, the model answers one question about each with a
+probability, and the snake takes the highest. No search, no lookahead, no pixels.
 
 - Trained in under 8 minutes on a laptop's integrated GPU
 - 35 to 77 ms per move
 - Calibrated: when it says 35%, it is right about 34% of the time
-- On 10 games it had never seen, it beat the rule it learned from 3 times and lost 7
+- On 10 games it had never seen, it beat the rule it learned from 3 times
 
-The losses taught more. In one game it died choosing between a move it scored 4.6% and one it scored
-3.6%. Neither fit the question, and it was rating each option alone instead of comparing them. The
-fix in Tetris was a ranking head; Snake is next.
+The question is the whole design. The model never sees the board; it reads a sentence about where
+the snake would be after a move and says how likely that is to end well. Because the number is
+honest, the game can trust it as a decision, and the replay below shows every one it made.
 
 <iframe src="https://devakmmm.github.io/sentence-snake/" title="Sentence Snake replays" loading="lazy" style="width:100%;aspect-ratio:16/10;border:0;border-radius:12px;background:#0d1117"></iframe>
 

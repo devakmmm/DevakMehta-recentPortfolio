@@ -69,13 +69,15 @@ test('the desk has its story parts', () => {
 })
 
 // The cat: all black, sitting at the back of the desk, eyes that follow the cursor (the only nodes
-// whose names contain "eye", so the scene's eye-follow drives them and nothing else).
+// whose names contain "eye", so the scene's eye-follow drives them and nothing else). Nothing hangs
+// under the chin: the collar and tag read as a tongue from the hero camera.
 test('a black cat sits on the desk, and its eyes are the eyes', () => {
   const g = readGlbJson(GLB)
   const names = (g.nodes || []).map((n) => n.name || '')
-  for (const n of ['cat', 'cat-body', 'cat-chest', 'cat-head', 'cat-muzzle', 'cat-ear-l', 'cat-ear-r', 'cat-eye-l', 'cat-eye-r', 'cat-nose', 'cat-tail', 'cat-collar', 'cat-tag']) {
+  for (const n of ['cat', 'cat-body', 'cat-chest', 'cat-head', 'cat-muzzle', 'cat-ear-l', 'cat-ear-r', 'cat-eye-l', 'cat-eye-r', 'cat-nose', 'cat-tail']) {
     assert.ok(names.includes(n), `cat part missing: ${n}`)
   }
+  assert.ok(!names.includes('cat-collar') && !names.includes('cat-tag'), 'nothing under the chin: no collar, no tag')
   assert.ok(names.filter((n) => n.startsWith('cat-paw-')).length >= 2, 'front paws')
   assert.ok(names.filter((n) => n.startsWith('cat-whisker-')).length >= 4, 'whiskers')
   const eyes = names.filter((n) => /eye/i.test(n))

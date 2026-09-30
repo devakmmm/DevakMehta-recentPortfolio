@@ -267,8 +267,6 @@ for (const [side, sx] of [['l', -1], ['r', 1]]) {
   cat.add(mesh(new THREE.TubeGeometry(tail, 24, 0.011, 10, false), M.fur, 'cat-tail'))
   cat.add(sph(0.012, M.fur, 'cat-tail-tip', [0.12, 0.012, 0.034]))
 }
-cat.add(mesh(new THREE.TorusGeometry(0.041, 0.006, 10, 32), M.collar, 'cat-collar', [0, 0.16, 0.03], [Math.PI / 2 - 0.35, 0, 0]))
-cat.add(cyl(mm(8), mm(1.5), M.brass, 'cat-tag', [0, 0.135, 0.072], [Math.PI / 2 - 0.2, 0, 0], 20))
 scene.add(cat)
 
 // ---- a photo frame that the scene shows once a photo exists --------------------------------

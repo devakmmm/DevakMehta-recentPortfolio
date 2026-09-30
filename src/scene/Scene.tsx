@@ -7,6 +7,8 @@ import Env from './Env'
 import { FOCUS_POINTS, FRAMES_PER_NODE } from '../data/focusPoints'
 import DvScreen from '../ui/DvScreen'
 import { createDvBoard } from '../ui/dvBoard'
+import { useStore } from '../store'
+import { povDistance } from './pov'
 
 useGLTF.preload(`${import.meta.env.BASE_URL}models/me.glb`, false)
 
@@ -17,6 +19,7 @@ const RESUME_FRAMES = M * FRAMES_PER_NODE // 履历区帧数：每节点 FRAMES_
 const WORKS_ENTRANCE = 50 // 作品区"入场"（画廊屏幕从底部滑入覆盖）占的帧数
 const FPS = 24 // 所有 clip @24fps 共享时间轴；相机动画总帧数运行时从 CameraAction clip 读（见 totalFrames）
 const NODE_LINE = 0.3 // 节点"终点"参考线：条目顶部到达视口该高度(从上 30%)时锁定为该节点
+const POV_SECONDS = 1.1 // first person at the laptop: tween length, desk ↔ screen
 
 // 上下渐变背景球（包裹相机），两端颜色可调
 function GradientBackground() {
@@ -112,11 +115,13 @@ function Man2({
   frameRef,
   dofBokehRef,
   dofRangeRef,
+  povRef,
 }: {
   focusRef: MutableRefObject<THREE.Vector3>
   frameRef: MutableRefObject<number>
   dofBokehRef: MutableRefObject<number>
   dofRangeRef: MutableRefObject<number>
+  povRef: MutableRefObject<number>
 }) {
   // The desk glb is authored in metres with its own camera path, so it sits at the origin at scale 1.
   const posX = 0
@@ -152,7 +157,7 @@ function Man2({
   const { scene, animations } = useGLTF(`${import.meta.env.BASE_URL}models/me.glb`, false)
 
   // 克隆模型；收集眼睛对象、聚焦锚点对象、glb 自带相机、各锚点景深开关
-  const { model, eyes, points, startPoint, glbCam, focusNode, dof, laptopGlass, ledMaterial, board, photoFrame, framePhoto } = useMemo(() => {
+  const { model, eyes, points, startPoint, glbCam, focusNode, dof, laptopGlass, ledMaterial, board, screenSize, photoFrame, framePhoto } = useMemo(() => {
     const clone = scene.clone(true)
     const eyes: any[] = []
     const pmap: Record<string, any> = {}
@@ -211,6 +216,14 @@ function Man2({
       board = createDvBoard()
       laptopGlass.material = new THREE.MeshBasicMaterial({ map: board.texture, toneMapped: false })
     }
+    // the screen's size, for the first-person distance (scene/pov.ts)
+    const screenSize: [number, number] = [0.29, 0.18]
+    if (laptopGlass && laptopGlass.geometry) {
+      laptopGlass.geometry.computeBoundingBox()
+      const bb = laptopGlass.geometry.boundingBox
+      screenSize[0] = bb.max.x - bb.min.x
+      screenSize[1] = bb.max.y - bb.min.y
+    }
     const pts = POINTS.map((n) => pmap[n] || null)
     // 作品区锚点：优先 focus-works（旧 glb）；缺省（intro3d 统一命名不导）则复用末时间轴节点 focus-M。
     const works = focusNode || pts[pts.length - 1] || null
@@ -228,6 +241,7 @@ function Man2({
       laptopGlass,
       ledMaterial,
       board,
+      screenSize,
       photoFrame,
       framePhoto,
       points: pts,
@@ -307,9 +321,10 @@ function Man2({
     return () => window.removeEventListener('dv-state', onState)
   }, [])
 
-  // Clicks for the board. The scrollable content layer sits above the canvas and swallows pointer
-  // events, so the canvas never sees them; listen on window, raycast against the laptop screen, and
-  // hand the hit to the board. Links, buttons and the gallery keep their own clicks.
+  // Clicks on the laptop. The scrollable content layer sits above the canvas and swallows pointer
+  // events, so the canvas never sees them; listen on window and raycast against the laptop screen.
+  // From the desk any hit on the screen flies the camera in (store.pov); at the screen the hit goes
+  // to the board. Links, buttons and the gallery keep their own clicks.
   const laptopLid = useMemo(() => {
     let lid: any = null
     model.traverse((o: any) => {
@@ -337,8 +352,11 @@ function Man2({
       if (ev.button !== 0 || interactive(ev)) return
       const h = hit(ev)
       if (!h) return
+      if (!useStore.getState().pov) {
+        useStore.getState().setPov(true)
+        return
+      }
       if (h.object === laptopGlass && h.uv) board.click(h.uv.x, 1 - h.uv.y)
-      else board.click(0.5, 0.5) // the lid counts too: a generous target
     }
     let last = 0
     const onMove = (ev: PointerEvent) => {
@@ -347,9 +365,12 @@ function Man2({
       last = now
       if (interactive(ev)) return
       const h = hit(ev)
-      if (h && h.object === laptopGlass && h.uv) {
+      if (h && !useStore.getState().pov) {
+        board.hover(null)
+        document.body.style.cursor = 'pointer' // the whole screen is the door
+      } else if (h && h.object === laptopGlass && h.uv) {
         board.hover(h.uv.x, 1 - h.uv.y)
-        document.body.style.cursor = board.running() ? '' : 'pointer'
+        document.body.style.cursor = board.hovering() && !board.running() ? 'pointer' : ''
       } else {
         board.hover(null)
         if (document.body.style.cursor === 'pointer') document.body.style.cursor = ''
@@ -405,6 +426,17 @@ function Man2({
   const camScl = useRef(new THREE.Vector3())
   const paraEuler = useRef(new THREE.Euler(0, 0, 0, 'YXZ'))
   const paraQuat = useRef(new THREE.Quaternion())
+
+  // first person at the laptop (store.pov): tween progress, and the pose in front of the screen
+  const povT = useRef(0)
+  const povArrived = useRef(false)
+  const povCenter = useRef(new THREE.Vector3())
+  const glassQuat = useRef(new THREE.Quaternion())
+  const povNormal = useRef(new THREE.Vector3())
+  const povUp = useRef(new THREE.Vector3())
+  const povPos = useRef(new THREE.Vector3())
+  const povQuat = useRef(new THREE.Quaternion())
+  const povMat = useRef(new THREE.Matrix4())
 
   useFrame((_, dt) => {
     const a = 1 - Math.pow(cam.damping, dt)
@@ -542,6 +574,32 @@ function Man2({
       }
     }
 
+    // 5) First person at the laptop (store.pov). A POV_SECONDS tween from the scroll pose to a pose
+    //    straight in front of the screen, sized so the screen fills the view (scene/pov.ts). The scroll
+    //    pose keeps being computed underneath, so leaving blends back to wherever the page is. On
+    //    arrival the board wakes by itself the first time (dvBoard.click), the way the tag promised.
+    const povOn = useStore.getState().pov
+    povT.current = THREE.MathUtils.clamp(povT.current + (povOn ? dt : -dt) / POV_SECONDS, 0, 1)
+    const pw = THREE.MathUtils.smoothstep(povT.current, 0, 1)
+    povRef.current = pw
+    if (pw > 0 && laptopGlass && glbCam) {
+      laptopGlass.getWorldPosition(povCenter.current)
+      laptopGlass.getWorldQuaternion(glassQuat.current)
+      povNormal.current.set(0, 0, 1).applyQuaternion(glassQuat.current)
+      povUp.current.set(0, 1, 0).applyQuaternion(glassQuat.current)
+      const aspect = (get().camera as any).aspect || 1
+      const dist = povDistance(glbCam.fov, aspect, screenSize[0], screenSize[1], 0.86) // room for the back button
+      povPos.current.copy(povCenter.current).addScaledVector(povNormal.current, dist)
+      povMat.current.lookAt(povPos.current, povCenter.current, povUp.current)
+      povQuat.current.setFromRotationMatrix(povMat.current)
+      focusRef.current.lerp(povCenter.current, pw)
+    }
+    if (povOn && povT.current >= 1 && !povArrived.current) {
+      povArrived.current = true
+      if (board && board.runs() === 0) board.click(0.5, 0.5)
+    }
+    if (!povOn) povArrived.current = false
+
     // 2b) 拷贝 glb 相机世界变换到默认相机，并绕焦点做轨道式鼠标视差（焦点屏幕位置不变）
     const camera: any = get().camera
     if (glbCam && camera.isPerspectiveCamera) {
@@ -573,6 +631,11 @@ function Man2({
           const dist = camera.position.distanceTo(focusRef.current)
           camera.translateX(-dist * cam.mobileTimelineShift * tlWeight)
         }
+      }
+      // first person: blend onto the pose in front of the screen (pw = 1 there)
+      if (pw > 0) {
+        camera.position.lerp(povPos.current, pw)
+        camera.quaternion.slerp(povQuat.current, pw)
       }
       if (camera.fov !== glbCam.fov) {
         camera.fov = glbCam.fov
@@ -620,7 +683,7 @@ function Man2({
       scale={scale}
     >
       <primitive object={model} />
-      {laptopGlass && createPortal(<DvScreen onTap={() => board && board.click(0.5, 0.5)} />, laptopGlass)}
+      {laptopGlass && createPortal(<DvScreen onTap={() => useStore.getState().setPov(true)} />, laptopGlass)}
     </group>
   )
 }
@@ -632,11 +695,13 @@ function Post2({
   frameRef,
   dofBokehRef,
   dofRangeRef,
+  povRef,
 }: {
   focusRef: MutableRefObject<THREE.Vector3>
   frameRef: MutableRefObject<number>
   dofBokehRef: MutableRefObject<number>
   dofRangeRef: MutableRefObject<number>
+  povRef: MutableRefObject<number>
 }) {
   const post = {
     bloomIntensity: 0.6,
@@ -651,6 +716,7 @@ function Post2({
   }
 
   const dofRef = useRef<any>(null)
+  const bloomRef = useRef<any>(null)
   useFrame(() => {
     const e = dofRef.current
     if (!e) return
@@ -670,6 +736,13 @@ function Post2({
       e.bokehScale = THREE.MathUtils.lerp(post.focusBokeh, post.startBokeh, w)
       if (e.cocMaterial) e.cocMaterial.focusRange = THREE.MathUtils.lerp(post.focusRange, post.startRange, w)
     }
+    // first person at the laptop (povRef 0→1): no blur and no glow, so the screen reads as a screen
+    const pw = povRef ? povRef.current : 0
+    if (pw > 0) {
+      e.bokehScale *= 1 - pw
+      if (e.cocMaterial) e.cocMaterial.focusRange = THREE.MathUtils.lerp(e.cocMaterial.focusRange, 2, pw)
+    }
+    if (bloomRef.current) bloomRef.current.intensity = post.bloomIntensity * (1 - pw)
   })
 
   return (
@@ -684,6 +757,7 @@ function Post2({
         />
       ) : null) as any}
       <Bloom
+        ref={bloomRef}
         mipmapBlur
         intensity={post.bloomIntensity}
         luminanceThreshold={post.bloomThreshold}
@@ -701,16 +775,18 @@ export default function Scene() {
   // 逐锚点景深（intro3d 导出的 glb 携带）：Man2 每帧写、Post2 读。dofBokeh=-1 表示无参数 → Post2 走旧全局混合。
   const dofBokehRef = useRef(-1)
   const dofRangeRef = useRef(0.15)
+  // first person at the laptop: 0 on the desk, 1 at the screen (Man2 writes, Post2 reads)
+  const povRef = useRef(0)
   return (
     <>
       <GradientBackground />
 
       <Suspense fallback={null}>
         <Lights />
-        <Man2 focusRef={focusRef} frameRef={frameRef} dofBokehRef={dofBokehRef} dofRangeRef={dofRangeRef} />
+        <Man2 focusRef={focusRef} frameRef={frameRef} dofBokehRef={dofBokehRef} dofRangeRef={dofRangeRef} povRef={povRef} />
       </Suspense>
 
-      <Post2 focusRef={focusRef} frameRef={frameRef} dofBokehRef={dofBokehRef} dofRangeRef={dofRangeRef} />
+      <Post2 focusRef={focusRef} frameRef={frameRef} dofBokehRef={dofBokehRef} dofRangeRef={dofRangeRef} povRef={povRef} />
     </>
   )
 }

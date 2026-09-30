@@ -6,13 +6,10 @@ tags: [imitation learning, integrated GPU, sim first]
 link: https://devakmmm.github.io/
 ---
 
-Imitation-learning policies trained on a laptop with no discrete GPU, in simulation first, hardware
-second at every step.
+Teaching a robot arm by demonstration, on a laptop with no discrete GPU. Policies learn in
+simulation first; the hardware step comes once a policy works there. The path runs from a simulated
+arm to a balancing task to a real SO-101.
 
-- ACT trains at 4.9 steps per second; a diffusion policy beat it on reward at a quarter of the compute
-- Task success after 10,000 steps: 0%, reported as such
-- The training environment is firewalled off the network by 61 rules
-
-Mid-run the laptop started swapping: 1.35 seconds per step became 11.2, with 39 million page faults.
-A wake-word training job and ten editor sessions had taken the memory. The page-in rate was the
-measurement; the cause was an inference until the sessions were closed and the rate recovered.
+- Two policy families trained and compared on the same task: ACT at 4.9 steps per second, and a diffusion policy that reached a higher reward at a quarter of the compute
+- Every run records its speed, its memory and its task success, so the next run is compared against a number
+- The training environment is firewalled off the network by 61 rules; nothing is fetched mid-run

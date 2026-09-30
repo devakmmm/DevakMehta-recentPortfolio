@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Html } from '@react-three/drei'
+import { useStore } from '../store'
 
 // The floating "click me" tag above the laptop screen. The board itself is a canvas texture on the
 // screen mesh (ui/dvBoard.ts); this tag is screen-space HTML anchored to the glass, hidden after the
-// first run (dvBoard emits `dv-runs`).
+// first run (dvBoard emits `dv-runs`) and while the camera is at the screen (store.pov).
 export default function DvScreen({ onTap }: { onTap?: () => void }) {
   const [runs, setRuns] = useState(0)
   const [running, setRunning] = useState(false)
+  const pov = useStore((s) => s.pov)
   useEffect(() => {
     const onRuns = (e: any) => {
       setRuns(e.detail || 0)
@@ -22,7 +24,7 @@ export default function DvScreen({ onTap }: { onTap?: () => void }) {
       window.removeEventListener('dv-state', onState)
     }
   }, [])
-  if (runs > 0 || running) return null
+  if (runs > 0 || running || pov) return null
   return (
     <Html position={[0, 0.082, 0]} center zIndexRange={[20, 0]} style={{ pointerEvents: 'auto' }}>
       <div

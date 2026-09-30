@@ -13,6 +13,5 @@ scale it, and a held fist blows it apart into its pieces.
 - Hand tracking runs in the browser from a vendored model; unplug the network and it still tracks
 - The part it shows is the puck's own bill of materials, in exploded view
 
-The first renderer was wrong and had to be rebuilt for correctness. Next is the pepper's ghost
-pyramid on a spare monitor, which is what the small glass pyramid on the desk stands for. The
-hologram inside it turns toward your cursor.
+Next is the pepper's ghost pyramid on a spare monitor, which is what the small glass pyramid on the
+desk stands for. The hologram inside it turns toward your cursor.
