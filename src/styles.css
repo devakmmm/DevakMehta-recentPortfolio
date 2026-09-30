@@ -54,6 +54,7 @@ canvas {
 .scene-bg canvas {
   width: 100% !important;
   height: 100% !important;
+  pointer-events: auto; /* the desk takes clicks (the board on the laptop); the wrapper stays pass-through */
 }
 
 .scrim {

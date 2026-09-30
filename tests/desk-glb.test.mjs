@@ -60,11 +60,12 @@ test('the desk has its story parts', () => {
   }
   assert.ok(names.filter((n) => n.startsWith('puck-led-')).length === 16, '16 NeoPixels expected on the ring')
   assert.ok(names.filter((n) => n.startsWith('sticker-')).length >= 5, 'at least five stickers (one per build)')
-  for (const n of ['laptop-base', 'laptop-screen', 'laptop-trackpad', 'snake-food']) assert.ok(has(n), `laptop detail missing: ${n}`)
+  for (const n of ['laptop-base', 'laptop-screen', 'laptop-glass', 'laptop-trackpad']) assert.ok(has(n), `laptop detail missing: ${n}`)
   assert.ok(names.filter((n) => n.startsWith('laptop-key-')).length >= 60, 'a keyboard needs keys')
-  assert.ok(names.filter((n) => n.startsWith('snake-seg-')).length >= 6, 'a snake on the screen')
+  assert.equal(names.filter((n) => n.startsWith('snake-')).length, 0, 'the screen is the live D.V board now, no snake cubes')
   for (const n of ['pyramid-glass', 'pyramid-base', 'holo-figure']) assert.ok(has(n), `pyramid detail missing: ${n}`)
-  for (const n of ['notebook-cover', 'notebook-pages', 'pen', 'hooks-card', 'mug']) assert.ok(has(n), `desk detail missing: ${n}`)
+  for (const n of ['notebook-cover', 'notebook-pages', 'pen', 'hooks-card']) assert.ok(has(n), `desk detail missing: ${n}`)
+  assert.ok(!has('mug') && !has('mug-initials'), 'the mug is gone')
 })
 
 // The cat: black and white, sitting on the desk corner, eyes that follow the cursor (the only nodes
@@ -81,10 +82,12 @@ test('a black and white cat sits on the desk, and its eyes are the eyes', () => 
   assert.deepEqual(eyes.sort(), ['cat-eye-l', 'cat-eye-r'], `only the cat's eyes may match /eye/: ${eyes}`)
 })
 
-// Personal touches that need no file from Devak: initials on the mug, and a photo frame that stays
-// hidden until public/images/photo.jpg exists (the scene shows it at runtime).
-test('the mug carries initials and the desk has a photo frame', () => {
+// A photo frame that stays hidden until public/images/photo.jpg exists (the scene shows it at runtime),
+// and the cat scaled down a little.
+test('the desk has a photo frame, and the cat is a little smaller', () => {
   const g = readGlbJson(GLB)
   const names = (g.nodes || []).map((n) => n.name || '')
-  for (const n of ['mug-initials', 'photo-frame', 'frame-photo']) assert.ok(names.includes(n), `missing: ${n}`)
+  for (const n of ['photo-frame', 'frame-photo']) assert.ok(names.includes(n), `missing: ${n}`)
+  const cat = g.nodes.find((n) => n.name === 'cat')
+  assert.ok(cat && cat.scale && Math.abs(cat.scale[0] - 0.8) < 1e-6, `cat scale should be 0.8, got ${cat && cat.scale}`)
 })

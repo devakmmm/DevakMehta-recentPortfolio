@@ -1,10 +1,12 @@
 import { Suspense, useMemo, useRef, useEffect, type MutableRefObject } from 'react'
-import { useThree, useFrame } from '@react-three/fiber'
+import { useThree, useFrame, createPortal } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
 import { EffectComposer, Bloom, DepthOfField, SMAA } from '@react-three/postprocessing'
 import * as THREE from 'three'
 import Env from './Env'
 import { FOCUS_POINTS, FRAMES_PER_NODE } from '../data/focusPoints'
+import DvScreen from '../ui/DvScreen'
+import { createDvBoard } from '../ui/dvBoard'
 
 useGLTF.preload(`${import.meta.env.BASE_URL}models/me.glb`, false)
 
@@ -150,15 +152,15 @@ function Man2({
   const { scene, animations } = useGLTF(`${import.meta.env.BASE_URL}models/me.glb`, false)
 
   // 克隆模型；收集眼睛对象、聚焦锚点对象、glb 自带相机、各锚点景深开关
-  const { model, eyes, points, startPoint, glbCam, focusNode, dof, snakeSegs, food, photoFrame, framePhoto } = useMemo(() => {
+  const { model, eyes, points, startPoint, glbCam, focusNode, dof, laptopGlass, ledMaterial, board, photoFrame, framePhoto } = useMemo(() => {
     const clone = scene.clone(true)
     const eyes: any[] = []
     const pmap: Record<string, any> = {}
     let startPoint: any = null
     let glbCam: any = null
     let focusNode: any = null
-    const snakeSegs: any[] = []
-    let food: any = null
+    let laptopGlass: any = null
+    let ledMaterial: any = null
     let photoFrame: any = null
     let framePhoto: any = null
     clone.traverse((o: any) => {
@@ -170,8 +172,8 @@ function Man2({
       // 首页锚点：兼容旧名 focus-start 与 intro3d 统一命名 focus-0
       if (o.name === 'focus-start' || o.name === 'focus-0') startPoint = o
       if (o.name === 'focus-works') focusNode = o
-      if (/^snake-seg-\d+$/.test(o.name)) snakeSegs.push(o)
-      if (o.name === 'snake-food') food = o
+      if (o.name === 'laptop-glass') laptopGlass = o
+      if (/^puck-led-\d+$/.test(o.name) && !ledMaterial) ledMaterial = o.material
       if (o.name === 'photo-frame') {
         photoFrame = o
         o.visible = false // shown only once public/images/photo.jpg loads
@@ -203,6 +205,12 @@ function Man2({
     } else {
       eyes.forEach((e) => (e.sx = 0))
     }
+    // the D.V board: a canvas texture on the laptop glass (ui/dvBoard.ts); clicks arrive by raycast
+    let board: any = null
+    if (laptopGlass) {
+      board = createDvBoard()
+      laptopGlass.material = new THREE.MeshBasicMaterial({ map: board.texture, toneMapped: false })
+    }
     const pts = POINTS.map((n) => pmap[n] || null)
     // 作品区锚点：优先 focus-works（旧 glb）；缺省（intro3d 统一命名不导）则复用末时间轴节点 focus-M。
     const works = focusNode || pts[pts.length - 1] || null
@@ -214,12 +222,12 @@ function Man2({
     const hasDofParams = [...pts, start, works].some((o) => ud(o).dofBokeh !== undefined)
     const effBokeh = (o: any): number => (ud(o).dofEnabled === false ? 0 : (ud(o).dofBokeh ?? 0))
     const effRange = (o: any): number => ud(o).dofFocusRange ?? 0
-    snakeSegs.sort((p: any, q: any) => Number(p.name.split('-')[2]) - Number(q.name.split('-')[2]))
     return {
       model: clone,
       eyes,
-      snakeSegs,
-      food,
+      laptopGlass,
+      ledMaterial,
+      board,
       photoFrame,
       framePhoto,
       points: pts,
@@ -287,17 +295,16 @@ function Man2({
     )
   }, [photoFrame, framePhoto])
 
-  // Sentence Snake alive on the laptop screen: the segments walk a loop of screen cells.
-  const snakeClock = useRef(0)
-  const snakeHead = useRef(0)
-  const SNAKE_CELL = 0.013
-  const SNAKE_LOOP = useMemo(() => {
-    const cells: [number, number][] = []
-    for (let x = -6; x < 6; x++) cells.push([x, -4])
-    for (let y = -4; y < 4; y++) cells.push([6, y])
-    for (let x = 6; x > -6; x--) cells.push([x, 4])
-    for (let y = 4; y > -4; y--) cells.push([-6, y])
-    return cells
+  // D.V's state, sent by the board on the laptop screen (ui/DvScreen.tsx) as a DOM event. The puck's
+  // ring on the desk follows it, the way the real ring follows the real board.
+  const dvState = useRef<'idle' | 'thinking' | 'speaking'>('idle')
+  const dvClock = useRef(0)
+  useEffect(() => {
+    const onState = (e: any) => {
+      dvState.current = (e && e.detail) || 'idle'
+    }
+    window.addEventListener('dv-state', onState)
+    return () => window.removeEventListener('dv-state', onState)
   }, [])
 
   // window 级鼠标输入（smouse 为缓动后的值）
@@ -344,23 +351,14 @@ function Man2({
 
   useFrame((_, dt) => {
     const a = 1 - Math.pow(cam.damping, dt)
-    // snake step every 0.16 s; food alternates between two spots inside the loop
-    if (snakeSegs.length) {
-      snakeClock.current += dt
-      if (snakeClock.current > 0.16) {
-        snakeClock.current = 0
-        snakeHead.current = (snakeHead.current + 1) % SNAKE_LOOP.length
-        snakeSegs.forEach((seg: any, i: number) => {
-          const [gx, gy] = SNAKE_LOOP[(snakeHead.current - i + SNAKE_LOOP.length) % SNAKE_LOOP.length]
-          seg.position.x = gx * SNAKE_CELL
-          seg.position.y = 0.10 + gy * SNAKE_CELL
-        })
-        if (food) {
-          const spot = Math.floor(snakeHead.current / 20) % 2 === 0 ? [2, 1] : [-3, 2]
-          food.position.x = spot[0] * SNAKE_CELL
-          food.position.y = 0.10 + spot[1] * SNAKE_CELL
-        }
-      }
+    if (board) board.update(performance.now())
+    // the ring: steady when idle, slow breathing while thinking, quick pulse while speaking
+    if (ledMaterial) {
+      dvClock.current += dt
+      const tt = dvClock.current
+      const st = dvState.current
+      ledMaterial.emissiveIntensity =
+        st === 'thinking' ? 1.6 + Math.sin(tt * 2.4) * 1.1 : st === 'speaking' ? 2.4 + Math.sin(tt * 14) * 1.5 : 2.6
     }
 
     // 1) 由履历锚点（文档坐标）算连续索引 s：
@@ -564,7 +562,30 @@ function Man2({
       rotation={[0, (rotationY * Math.PI) / 180, 0]}
       scale={scale}
     >
-      <primitive object={model} />
+      <primitive
+        object={model}
+        onClick={(ev: any) => {
+          if (board && ev.object && ev.object.name === 'laptop-glass' && ev.uv) {
+            ev.stopPropagation()
+            board.click(ev.uv.x, 1 - ev.uv.y)
+          }
+        }}
+        onPointerMove={(ev: any) => {
+          if (!board) return
+          if (ev.object && ev.object.name === 'laptop-glass' && ev.uv) {
+            board.hover(ev.uv.x, 1 - ev.uv.y)
+            document.body.style.cursor = board.running() ? '' : 'pointer'
+          } else {
+            board.hover(null)
+            document.body.style.cursor = ''
+          }
+        }}
+        onPointerOut={() => {
+          if (board) board.hover(null)
+          document.body.style.cursor = ''
+        }}
+      />
+      {laptopGlass && createPortal(<DvScreen />, laptopGlass)}
     </group>
   )
 }

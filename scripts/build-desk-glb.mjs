@@ -6,13 +6,11 @@
 // Units are metres (glTF). The puck is the real enclosure (80 × 110 × 45 mm box, clear lid,
 // 44.5 mm ring with 16 pixels, 12 mm button, speaker grille on a 5 mm grid, mic pinhole).
 // Run: node scripts/build-desk-glb.mjs   Test: node --test tests/desk-glb.test.mjs
-import { writeFileSync, mkdirSync, readFileSync } from 'node:fs'
+import { writeFileSync, mkdirSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import * as THREE from 'three'
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js'
-import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js'
-import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js'
 
 // GLTFExporter reads Blobs through the browser FileReader; Node has Blob but no FileReader.
 class NodeFileReader {
@@ -66,8 +64,6 @@ const M = {
   silver: std('#b9bcc2', { roughness: 0.35, metalness: 0.6 }),
   key: std('#2b2e33', { roughness: 0.55 }),
   screenGlass: new THREE.MeshStandardMaterial({ color: '#0d1b2a', emissive: '#12324c', emissiveIntensity: 0.45, roughness: 0.2 }),
-  snake: glow('#5fbf6a', 0.9),
-  food: glow('#e0543f', 0.9),
   monitor: std('#151a1f', { roughness: 0.45 }),
   monitorFace: new THREE.MeshStandardMaterial({ color: '#08141c', emissive: '#0d2a38', emissiveIntensity: 0.5, roughness: 0.3 }),
   holo: new THREE.MeshStandardMaterial({ color: '#8fe8f0', emissive: '#59d6e6', emissiveIntensity: 1.1, transparent: true, opacity: 0.7, roughness: 0.3 }),
@@ -76,8 +72,6 @@ const M = {
   band: std('#3a3530', { roughness: 0.8 }),
   pen: std('#23395b', { roughness: 0.4, metalness: 0.2 }),
   card: std('#efe9dc', { roughness: 0.85 }),
-  mug: std('#3d6b8f', { roughness: 0.45 }),
-  coffee: std('#3b2214', { roughness: 0.4 }),
   stickerPaper: std('#f7f4ee', { roughness: 0.6 }),
   fur: std('#141416', { roughness: 0.95 }),
   furWhite: std('#f2efe8', { roughness: 0.95 }),
@@ -89,7 +83,6 @@ const M = {
   whisker: std('#e8e4dc', { roughness: 0.6 }),
   frameWood: std('#4a3626', { roughness: 0.7 }),
   photoBlank: std('#d8d3c8', { roughness: 0.8 }),
-  initials: std('#f4f1ea', { roughness: 0.5 }),
 }
 
 // ---- helpers ----------------------------------------------------------------------------
@@ -199,11 +192,7 @@ screen.rotation.x = -0.30
 screen.add(box(0.31, 0.20, 0.006, M.silver, 'laptop-screen', [0, 0.10, 0]))
 screen.add(box(0.29, 0.18, 0.0012, M.screenGlass, 'laptop-glass', [0, 0.10, 0.0036]))
 screen.add(cyl(mm(1.2), mm(1), M.black, 'laptop-cam', [0, 0.193, 0.0042], [Math.PI / 2, 0, 0], 10))
-// Sentence Snake on the screen: an eight-segment snake and its food, as small glowing cubes
-const S = 0.011
-const snakePath = [[-5, -3], [-4, -3], [-3, -3], [-2, -3], [-2, -2], [-2, -1], [-1, -1], [0, -1]]
-snakePath.forEach(([gx, gy], i) => screen.add(box(S, S, 0.003, M.snake, `snake-seg-${i}`, [gx * (S + 0.002), 0.10 + gy * (S + 0.002), 0.0055])))
-screen.add(box(S, S, 0.003, M.food, 'snake-food', [3 * (S + 0.002), 0.10 + 2 * (S + 0.002), 0.0055]))
+// The laptop screen carries the live D.V board (src/ui/DvScreen.tsx), mounted on laptop-glass at runtime.
 laptop.add(screen)
 scene.add(laptop)
 
@@ -239,18 +228,10 @@ const hookColors = ['#e86b6b', '#58a6ff', '#5fbf6a', '#f0a15a', '#7fe0e8', '#9b7
 hookColors.forEach((c, i) => card.add(cyl(mm(3), mm(1.2), std(c, { roughness: 0.5 }), `hooks-dot-${i}`, [(i % 3 - 1) * 0.02, 0.0036, (i < 3 ? -0.002 : 0.014)], [0, 0, 0], 20)))
 scene.add(card)
 
-// ---- mug ----------------------------------------------------------------------------------
-const mugPos = [0.62, TOP, -0.18]
-const mug = group('mug-group', mugPos)
-mug.add(cyl(0.04, 0.095, M.mug, 'mug', [0, 0.0475, 0]))
-mug.add(cyl(0.036, 0.002, M.coffee, 'mug-coffee', [0, 0.086, 0]))
-mug.add(mesh(new THREE.TorusGeometry(0.024, 0.006, 10, 24, Math.PI), M.mug, 'mug-handle', [0.04, 0.05, 0], [0, 0, -Math.PI / 2]))
-scene.add(mug)
-
-
 // ---- the cat: black and white, sitting on the front-right corner, eyes that follow the cursor ----
 const catPos = [0.56, TOP, 0.27]
 const cat = group('cat', catPos, -0.55)
+cat.scale.setScalar(0.8)
 const sph = (r, material, name, pos, scale = [1, 1, 1]) => {
   const m = mesh(new THREE.SphereGeometry(r, 28, 18), material, name, pos)
   m.scale.set(...scale)
@@ -291,18 +272,7 @@ cat.add(mesh(new THREE.TorusGeometry(0.041, 0.006, 10, 32), M.collar, 'cat-colla
 cat.add(cyl(mm(8), mm(1.5), M.brass, 'cat-tag', [0, 0.135, 0.072], [Math.PI / 2 - 0.2, 0, 0], 20))
 scene.add(cat)
 
-// ---- personal touches: initials on the mug, a photo frame that the scene shows once a photo exists ----
-{
-  const fontJson = JSON.parse(readFileSync(new URL('../node_modules/three/examples/fonts/gentilis_bold.typeface.json', import.meta.url), 'utf8'))
-  const font = new FontLoader().parse(fontJson)
-  const geo = new TextGeometry('DM', { font, size: 0.024, depth: 0.0025, curveSegments: 6 })
-  geo.computeBoundingBox()
-  const w = geo.boundingBox.max.x - geo.boundingBox.min.x
-  const initials = mesh(geo, M.initials, 'mug-initials', [0, 0.036, 0.0405])
-  initials.position.x = -w / 2
-  mug.add(initials)
-  mug.rotation.y = 0.55
-}
+// ---- a photo frame that the scene shows once a photo exists --------------------------------
 const framePos = [0.30, TOP, -0.30]
 const frame = group('photo-frame', framePos, -0.25)
 frame.rotation.x = -0.18
