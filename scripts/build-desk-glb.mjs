@@ -1,16 +1,18 @@
 // Builds public/models/me.glb: Devak's desk, with the camera path and focus anchors that
 // src/scene/Scene.tsx reads BY NAME:
 //   camera + animation clip "CameraAction" (24 fps): frame 0 hero, frame 50·k stop k, tail = works
-//   empties focus-0 (hero), focus-1..5 (one per build), focus-works; a node named "eye-holo"
-//   (the hologram inside the pyramid) that turns toward the cursor.
+//   empties focus-0 (hero), focus-1..5 (one per build), focus-works; the cat's eyes (cat-eye-l/r),
+//   the only nodes named *eye*, which the scene turns toward the cursor.
 // Units are metres (glTF). The puck is the real enclosure (80 × 110 × 45 mm box, clear lid,
 // 44.5 mm ring with 16 pixels, 12 mm button, speaker grille on a 5 mm grid, mic pinhole).
 // Run: node scripts/build-desk-glb.mjs   Test: node --test tests/desk-glb.test.mjs
-import { writeFileSync, mkdirSync } from 'node:fs'
+import { writeFileSync, mkdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import * as THREE from 'three'
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js'
+import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js'
+import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js'
 
 // GLTFExporter reads Blobs through the browser FileReader; Node has Blob but no FileReader.
 class NodeFileReader {
@@ -77,6 +79,17 @@ const M = {
   mug: std('#3d6b8f', { roughness: 0.45 }),
   coffee: std('#3b2214', { roughness: 0.4 }),
   stickerPaper: std('#f7f4ee', { roughness: 0.6 }),
+  fur: std('#141416', { roughness: 0.95 }),
+  furWhite: std('#f2efe8', { roughness: 0.95 }),
+  catEye: std('#c9d36a', { roughness: 0.25, emissive: '#3b4a10', emissiveIntensity: 0.25 }),
+  pupil: std('#0a0a0a', { roughness: 0.3 }),
+  pink: std('#e2a0a8', { roughness: 0.7 }),
+  collar: std('#c8443f', { roughness: 0.5 }),
+  brass: std('#d1a545', { roughness: 0.35, metalness: 0.7 }),
+  whisker: std('#e8e4dc', { roughness: 0.6 }),
+  frameWood: std('#4a3626', { roughness: 0.7 }),
+  photoBlank: std('#d8d3c8', { roughness: 0.8 }),
+  initials: std('#f4f1ea', { roughness: 0.5 }),
 }
 
 // ---- helpers ----------------------------------------------------------------------------
@@ -195,12 +208,12 @@ laptop.add(screen)
 scene.add(laptop)
 
 // ---- the pyramid on its screen (D.V's Lab), with the hologram inside --------------------
-const pyrPos = [0.46, TOP, 0.13]
+const pyrPos = [0.40, TOP, -0.09]
 const pyr = group('pyramid', pyrPos, 0.25)
 pyr.add(box(0.17, 0.008, 0.17, M.monitor, 'pyramid-base', [0, 0.004, 0]))
 pyr.add(box(0.15, 0.0012, 0.15, M.monitorFace, 'pyramid-face', [0, 0.0086, 0]))
 pyr.add(mesh(new THREE.CylinderGeometry(0.078, 0.014, 0.072, 4, 1, true), glass('#dff0f6'), 'pyramid-glass', [0, 0.009 + 0.036, 0], [0, Math.PI / 4, 0]))
-const holo = group('eye-holo', [0, 0.009 + 0.036, 0])
+const holo = group('holo-figure', [0, 0.009 + 0.036, 0])
 holo.add(box(0.028, 0.004, 0.036, M.holo, 'holo-plate-0', [0, -0.016, 0]))
 holo.add(mesh(new THREE.TorusGeometry(0.012, 0.0025, 8, 32), M.holo, 'holo-ring', [0, 0, 0], [Math.PI / 2, 0, 0]))
 holo.add(box(0.028, 0.003, 0.036, M.holo, 'holo-plate-1', [0, 0.016, 0]))
@@ -233,6 +246,70 @@ mug.add(cyl(0.04, 0.095, M.mug, 'mug', [0, 0.0475, 0]))
 mug.add(cyl(0.036, 0.002, M.coffee, 'mug-coffee', [0, 0.086, 0]))
 mug.add(mesh(new THREE.TorusGeometry(0.024, 0.006, 10, 24, Math.PI), M.mug, 'mug-handle', [0.04, 0.05, 0], [0, 0, -Math.PI / 2]))
 scene.add(mug)
+
+
+// ---- the cat: black and white, sitting on the front-right corner, eyes that follow the cursor ----
+const catPos = [0.56, TOP, 0.27]
+const cat = group('cat', catPos, -0.55)
+const sph = (r, material, name, pos, scale = [1, 1, 1]) => {
+  const m = mesh(new THREE.SphereGeometry(r, 28, 18), material, name, pos)
+  m.scale.set(...scale)
+  return m
+}
+cat.add(sph(0.07, M.fur, 'cat-body', [0, 0.085, -0.01], [1, 1.25, 0.95]))
+cat.add(sph(0.046, M.furWhite, 'cat-chest', [0, 0.08, 0.042]))
+cat.add(mesh(new THREE.CylinderGeometry(0.017, 0.019, 0.07, 16), M.fur, 'cat-leg-l', [-0.03, 0.045, 0.058]))
+cat.add(mesh(new THREE.CylinderGeometry(0.017, 0.019, 0.07, 16), M.fur, 'cat-leg-r', [0.03, 0.045, 0.058]))
+cat.add(sph(0.019, M.furWhite, 'cat-paw-l', [-0.03, 0.014, 0.072], [1, 0.75, 1.2]))
+cat.add(sph(0.019, M.furWhite, 'cat-paw-r', [0.03, 0.014, 0.072], [1, 0.75, 1.2]))
+cat.add(sph(0.052, M.fur, 'cat-head', [0, 0.20, 0.03]))
+cat.add(sph(0.03, M.furWhite, 'cat-muzzle', [0, 0.183, 0.066], [1.25, 0.8, 0.9]))
+cat.add(sph(0.006, M.pink, 'cat-nose', [0, 0.194, 0.093]))
+for (const [side, sx] of [['l', -1], ['r', 1]]) {
+  cat.add(mesh(new THREE.ConeGeometry(0.02, 0.04, 4), M.fur, `cat-ear-${side}`, [sx * 0.033, 0.245, 0.02], [0.1, Math.PI / 4, sx * -0.35]))
+  cat.add(mesh(new THREE.ConeGeometry(0.011, 0.024, 4), M.pink, `cat-ear-${side}-inner`, [sx * 0.033, 0.243, 0.026], [0.15, Math.PI / 4, sx * -0.35]))
+  // an eye is a group: rotating it sweeps the pupil, which is what the scene's eye-follow does
+  const eye = group(`cat-eye-${side}`, [sx * 0.021, 0.208, 0.072])
+  eye.add(sph(0.0115, M.catEye, `cat-orb-${side}`, [0, 0, 0]))
+  eye.add(sph(0.0048, M.pupil, `cat-pupil-${side}`, [0, 0, 0.0085], [0.55, 1, 1]))
+  cat.add(eye)
+  for (let w = 0; w < 3; w++) {
+    cat.add(mesh(new THREE.CylinderGeometry(0.0006, 0.0006, 0.055, 6), M.whisker, `cat-whisker-${side}-${w}`, [sx * 0.045, 0.186 + (w - 1) * 0.006, 0.085], [0, 0, sx * (Math.PI / 2 - 0.15 + (w - 1) * 0.12)]))
+  }
+}
+{
+  const tail = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(0.02, 0.045, -0.06),
+    new THREE.Vector3(0.07, 0.02, -0.07),
+    new THREE.Vector3(0.11, 0.012, -0.03),
+    new THREE.Vector3(0.12, 0.012, 0.03),
+  ])
+  cat.add(mesh(new THREE.TubeGeometry(tail, 24, 0.011, 10, false), M.fur, 'cat-tail'))
+  cat.add(sph(0.012, M.furWhite, 'cat-tail-tip', [0.12, 0.012, 0.034]))
+}
+cat.add(mesh(new THREE.TorusGeometry(0.041, 0.006, 10, 32), M.collar, 'cat-collar', [0, 0.16, 0.03], [Math.PI / 2 - 0.35, 0, 0]))
+cat.add(cyl(mm(8), mm(1.5), M.brass, 'cat-tag', [0, 0.135, 0.072], [Math.PI / 2 - 0.2, 0, 0], 20))
+scene.add(cat)
+
+// ---- personal touches: initials on the mug, a photo frame that the scene shows once a photo exists ----
+{
+  const fontJson = JSON.parse(readFileSync(new URL('../node_modules/three/examples/fonts/gentilis_bold.typeface.json', import.meta.url), 'utf8'))
+  const font = new FontLoader().parse(fontJson)
+  const geo = new TextGeometry('DM', { font, size: 0.024, depth: 0.0025, curveSegments: 6 })
+  geo.computeBoundingBox()
+  const w = geo.boundingBox.max.x - geo.boundingBox.min.x
+  const initials = mesh(geo, M.initials, 'mug-initials', [0, 0.036, 0.0405])
+  initials.position.x = -w / 2
+  mug.add(initials)
+  mug.rotation.y = 0.55
+}
+const framePos = [0.30, TOP, -0.30]
+const frame = group('photo-frame', framePos, -0.25)
+frame.rotation.x = -0.18
+frame.add(box(0.104, 0.134, 0.006, M.frameWood, 'frame-border', [0, 0.067, 0]))
+frame.add(box(0.088, 0.118, 0.0012, M.photoBlank, 'frame-photo', [0, 0.067, 0.0036]))
+frame.add(box(0.02, 0.09, 0.004, M.frameWood, 'frame-stand', [0, 0.045, -0.02], [-0.35, 0, 0]))
+scene.add(frame)
 
 // ---- focus anchors -----------------------------------------------------------------------
 const puckC = [puckPos[0], TOP + PH / 2, puckPos[2]]

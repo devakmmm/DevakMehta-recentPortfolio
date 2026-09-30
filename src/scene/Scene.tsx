@@ -130,7 +130,7 @@ function Man2({
     dwell: 0.35,
     parallax: 4,
     parallaxEase: 0.1,
-    mobilePullback: 1.55,
+    mobilePullback: 1.8,
     mobileTimelineShift: 0.12,
   }
 
@@ -150,13 +150,17 @@ function Man2({
   const { scene, animations } = useGLTF(`${import.meta.env.BASE_URL}models/me.glb`, false)
 
   // 克隆模型；收集眼睛对象、聚焦锚点对象、glb 自带相机、各锚点景深开关
-  const { model, eyes, points, startPoint, glbCam, focusNode, dof } = useMemo(() => {
+  const { model, eyes, points, startPoint, glbCam, focusNode, dof, snakeSegs, food, photoFrame, framePhoto } = useMemo(() => {
     const clone = scene.clone(true)
     const eyes: any[] = []
     const pmap: Record<string, any> = {}
     let startPoint: any = null
     let glbCam: any = null
     let focusNode: any = null
+    const snakeSegs: any[] = []
+    let food: any = null
+    let photoFrame: any = null
+    let framePhoto: any = null
     clone.traverse((o: any) => {
       if (o.isMesh) {
         o.castShadow = true
@@ -166,6 +170,13 @@ function Man2({
       // 首页锚点：兼容旧名 focus-start 与 intro3d 统一命名 focus-0
       if (o.name === 'focus-start' || o.name === 'focus-0') startPoint = o
       if (o.name === 'focus-works') focusNode = o
+      if (/^snake-seg-\d+$/.test(o.name)) snakeSegs.push(o)
+      if (o.name === 'snake-food') food = o
+      if (o.name === 'photo-frame') {
+        photoFrame = o
+        o.visible = false // shown only once public/images/photo.jpg loads
+      }
+      if (o.name === 'frame-photo') framePhoto = o
       if (POINTS.includes(o.name)) pmap[o.name] = o
       if (/eye/i.test(o.name)) {
         // 平滑着色：重算平滑顶点法线 + 关闭 flatShading
@@ -203,9 +214,14 @@ function Man2({
     const hasDofParams = [...pts, start, works].some((o) => ud(o).dofBokeh !== undefined)
     const effBokeh = (o: any): number => (ud(o).dofEnabled === false ? 0 : (ud(o).dofBokeh ?? 0))
     const effRange = (o: any): number => ud(o).dofFocusRange ?? 0
+    snakeSegs.sort((p: any, q: any) => Number(p.name.split('-')[2]) - Number(q.name.split('-')[2]))
     return {
       model: clone,
       eyes,
+      snakeSegs,
+      food,
+      photoFrame,
+      framePhoto,
       points: pts,
       startPoint: start,
       glbCam,
@@ -252,6 +268,38 @@ function Man2({
   // 不切换激活相机（避免后处理 CoC 缓存旧相机 near/far 导致整体糊）。
   // 改为每帧把 glb 相机的世界变换 + fov 拷到默认相机上。
 
+  // A photo of Devak on the desk: public/images/photo.jpg. The frame stays hidden if the file is absent.
+  useEffect(() => {
+    if (!photoFrame || !framePhoto) return
+    new THREE.TextureLoader().load(
+      `${import.meta.env.BASE_URL}images/photo.jpg`,
+      (tex) => {
+        tex.colorSpace = THREE.SRGBColorSpace
+        const mat = framePhoto.material.clone()
+        mat.map = tex
+        mat.color.set('#ffffff')
+        mat.needsUpdate = true
+        framePhoto.material = mat
+        photoFrame.visible = true
+      },
+      undefined,
+      () => {}
+    )
+  }, [photoFrame, framePhoto])
+
+  // Sentence Snake alive on the laptop screen: the segments walk a loop of screen cells.
+  const snakeClock = useRef(0)
+  const snakeHead = useRef(0)
+  const SNAKE_CELL = 0.013
+  const SNAKE_LOOP = useMemo(() => {
+    const cells: [number, number][] = []
+    for (let x = -6; x < 6; x++) cells.push([x, -4])
+    for (let y = -4; y < 4; y++) cells.push([6, y])
+    for (let x = 6; x > -6; x--) cells.push([x, 4])
+    for (let y = 4; y > -4; y--) cells.push([-6, y])
+    return cells
+  }, [])
+
   // window 级鼠标输入（smouse 为缓动后的值）
   const mouse = useRef({ x: 0, y: 0 })
   const smouse = useRef({ x: 0, y: 0 })
@@ -296,6 +344,24 @@ function Man2({
 
   useFrame((_, dt) => {
     const a = 1 - Math.pow(cam.damping, dt)
+    // snake step every 0.16 s; food alternates between two spots inside the loop
+    if (snakeSegs.length) {
+      snakeClock.current += dt
+      if (snakeClock.current > 0.16) {
+        snakeClock.current = 0
+        snakeHead.current = (snakeHead.current + 1) % SNAKE_LOOP.length
+        snakeSegs.forEach((seg: any, i: number) => {
+          const [gx, gy] = SNAKE_LOOP[(snakeHead.current - i + SNAKE_LOOP.length) % SNAKE_LOOP.length]
+          seg.position.x = gx * SNAKE_CELL
+          seg.position.y = 0.10 + gy * SNAKE_CELL
+        })
+        if (food) {
+          const spot = Math.floor(snakeHead.current / 20) % 2 === 0 ? [2, 1] : [-3, 2]
+          food.position.x = spot[0] * SNAKE_CELL
+          food.position.y = 0.10 + spot[1] * SNAKE_CELL
+        }
+      }
+    }
 
     // 1) 由履历锚点（文档坐标）算连续索引 s：
     //    top s≈-1, first stop centred s=0, second=1 … fifth=4

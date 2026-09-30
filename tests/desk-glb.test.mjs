@@ -48,7 +48,7 @@ test('CameraAction clip exists and spans hero → 5 stops → works tail at 24 f
   assert.ok(clip.channels.some((c) => c.target.node === camNode), 'clip does not animate the camera node')
 })
 
-// Slice 3: the desk tells the story. Every object that a timeline stop points at has its real parts,
+// The desk tells the story. Every object that a timeline stop points at has its real parts,
 // the puck carries one sticker per build, the laptop screen shows a snake, and the hologram inside
 // the pyramid is the "eye" that follows the cursor.
 test('the desk has its story parts', () => {
@@ -63,6 +63,28 @@ test('the desk has its story parts', () => {
   for (const n of ['laptop-base', 'laptop-screen', 'laptop-trackpad', 'snake-food']) assert.ok(has(n), `laptop detail missing: ${n}`)
   assert.ok(names.filter((n) => n.startsWith('laptop-key-')).length >= 60, 'a keyboard needs keys')
   assert.ok(names.filter((n) => n.startsWith('snake-seg-')).length >= 6, 'a snake on the screen')
-  for (const n of ['pyramid-glass', 'pyramid-base', 'eye-holo']) assert.ok(has(n), `pyramid detail missing: ${n}`)
+  for (const n of ['pyramid-glass', 'pyramid-base', 'holo-figure']) assert.ok(has(n), `pyramid detail missing: ${n}`)
   for (const n of ['notebook-cover', 'notebook-pages', 'pen', 'hooks-card', 'mug']) assert.ok(has(n), `desk detail missing: ${n}`)
+})
+
+// The cat: black and white, sitting on the desk corner, eyes that follow the cursor (the only nodes
+// whose names contain "eye", so the scene's eye-follow drives them and nothing else).
+test('a black and white cat sits on the desk, and its eyes are the eyes', () => {
+  const g = readGlbJson(GLB)
+  const names = (g.nodes || []).map((n) => n.name || '')
+  for (const n of ['cat', 'cat-body', 'cat-chest', 'cat-head', 'cat-muzzle', 'cat-ear-l', 'cat-ear-r', 'cat-eye-l', 'cat-eye-r', 'cat-nose', 'cat-tail', 'cat-collar', 'cat-tag']) {
+    assert.ok(names.includes(n), `cat part missing: ${n}`)
+  }
+  assert.ok(names.filter((n) => n.startsWith('cat-paw-')).length >= 2, 'front paws')
+  assert.ok(names.filter((n) => n.startsWith('cat-whisker-')).length >= 4, 'whiskers')
+  const eyes = names.filter((n) => /eye/i.test(n))
+  assert.deepEqual(eyes.sort(), ['cat-eye-l', 'cat-eye-r'], `only the cat's eyes may match /eye/: ${eyes}`)
+})
+
+// Personal touches that need no file from Devak: initials on the mug, and a photo frame that stays
+// hidden until public/images/photo.jpg exists (the scene shows it at runtime).
+test('the mug carries initials and the desk has a photo frame', () => {
+  const g = readGlbJson(GLB)
+  const names = (g.nodes || []).map((n) => n.name || '')
+  for (const n of ['mug-initials', 'photo-frame', 'frame-photo']) assert.ok(names.includes(n), `missing: ${n}`)
 })
