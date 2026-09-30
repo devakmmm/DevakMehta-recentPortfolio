@@ -5,6 +5,8 @@ import * as THREE from 'three'
 // is invented. Clicking the pill wakes D.V: the globe goes thinking then speaking, four staff lines
 // type out an invented investigation, a card moves to Done, and the puck's ring on the desk follows
 // the state through a `dv-state` DOM event (scene/Scene.tsx listens). `dv-runs` fires per completed run.
+// Four prompt chips beside the pill ask D.V about Devak; those answers are true, unlike the tickets,
+// and arrive in the log one line at a time. The "follow" answer's lines are links.
 
 export type DvState = 'idle' | 'thinking' | 'speaking'
 
@@ -27,6 +29,52 @@ const STAFF = [
   { id: 'AUTOPSY', job: 'replays a run step by step' },
 ]
 
+// The prompts a visitor can pick. Answers are about Devak and are true. A line with a url is a link.
+interface Line {
+  who: string
+  text: string
+  url?: string
+}
+interface Prompt {
+  label: string
+  lines: Line[]
+}
+const PROMPTS: Prompt[] = [
+  {
+    label: 'Who is Devak?',
+    lines: [
+      { who: 'D.V', text: 'Devak Mehta, AI engineer. One laptop with an integrated GPU: decision models, a voice puck, a hand-tracked lab, and me.' },
+      { who: 'D.V', text: 'Own code, vendored models, nothing leaves the machine. Every build ships with one measured number.' },
+    ],
+  },
+  {
+    label: 'Building now',
+    lines: [
+      { who: 'D.V', text: "The puck's microphone and wake word are next on the bench." },
+      { who: 'D.V', text: 'Snake gets a ranking head, the way Tetris did; the pyramid moves to a spare monitor.' },
+      { who: 'D.V', text: 'And me: new staff as the work needs them.' },
+    ],
+  },
+  {
+    label: 'The puck',
+    lines: [
+      { who: 'D.V', text: 'A talking assistant on the desk: wake word, question, answer through the model on the laptop.' },
+      { who: 'D.V', text: 'Its 16-light ring shows listening, thinking, speaking. Audio never leaves the local network.' },
+    ],
+  },
+  {
+    label: 'Follow Devak',
+    lines: [
+      { who: 'GITHUB', text: 'github.com/devakmmm', url: 'https://github.com/devakmmm' },
+      { who: 'HOME', text: 'devakmmm.github.io · one page per build', url: 'https://devakmmm.github.io/' },
+    ],
+  },
+]
+// answer timing: a short think, then one line per step, then hold before idle
+const ANSWER_THINK = 500
+const ANSWER_STEP = 420
+const ANSWER_HOLD = 1400
+
 const INK = '#f4f1ea'
 const MUTED = 'rgba(244,241,234,.55)'
 const LINE = 'rgba(244,241,234,.14)'
@@ -35,8 +83,17 @@ const CYAN = '#7fd0ff'
 const FONT = 'Helvetica Neue, system-ui, sans-serif'
 const MONO = 'ui-monospace, Menlo, Consolas, monospace'
 
-// the pill's hit box, in canvas px
+// the pill's hit box, in canvas px; the prompt chips run to its right
 const PILL = { x: 28, y: 232, w: 300, h: 44 }
+const CHIP = { x: 352, size: 12, spacing: 3, pad: 22, gap: 12 }
+const LOG = { x: 28, textX: 118, line: 626, first: 644, step: 24 }
+
+interface Box {
+  x: number
+  y: number
+  w: number
+  h: number
+}
 
 function emit(name: string, detail: unknown) {
   window.dispatchEvent(new CustomEvent(name, { detail }))
@@ -76,12 +133,17 @@ export function createDvBoard() {
   let runStart = -1
   let runs = 0
   let stepsFired = 0
-  let hover = false
+  let answer: Prompt | null = null
+  let answerStart = 0
+  let answerFired = 0
+  let hoverKey: string | null = null // 'pill' | 'chip:i' | 'link:i'
   let theta = 0
   let lastDraw = 0
   let lastTick = 0
   let cols: { name: string; cards: string[] }[] = fresh()
-  let lines: { who: string; text: string }[] = []
+  let lines: Line[] = []
+  let chips: Box[] = []
+  let links: (Box & { url: string })[] = []
 
   function fresh() {
     return [
@@ -102,31 +164,54 @@ export function createDvBoard() {
     if (runStart >= 0) return
     runStart = now
     stepsFired = 0
+    answer = null
     lines = []
     cols = fresh()
   }
 
+  function ask(i: number, now: number) {
+    if (runStart >= 0 || !PROMPTS[i]) return
+    answer = PROMPTS[i]
+    answerStart = now
+    answerFired = 0
+    lines = []
+  }
+
   function tick(now: number) {
-    if (runStart < 0) return
-    const t = now - runStart
-    while (stepsFired < SCRIPT.length && t >= SCRIPT[stepsFired].at) {
-      const s = SCRIPT[stepsFired]
-      setState(s.state)
-      lines.push({ who: s.who, text: s.text })
-      stepsFired++
-    }
-    if (t >= DONE_AT) {
-      runStart = -1
-      runs++
-      setState('idle')
-      cols = cols.map((c) =>
-        c.name === 'Building'
-          ? { ...c, cards: c.cards.filter((x) => !x.startsWith('1042')) }
-          : c.name === 'Done'
-            ? { ...c, cards: ['1042 · not ours', ...c.cards] }
-            : c
-      )
-      emit('dv-runs', runs)
+    if (runStart >= 0) {
+      const t = now - runStart
+      while (stepsFired < SCRIPT.length && t >= SCRIPT[stepsFired].at) {
+        const s = SCRIPT[stepsFired]
+        setState(s.state)
+        lines.push({ who: s.who, text: s.text })
+        stepsFired++
+      }
+      if (t >= DONE_AT) {
+        runStart = -1
+        runs++
+        setState('idle')
+        cols = cols.map((c) =>
+          c.name === 'Building'
+            ? { ...c, cards: c.cards.filter((x) => !x.startsWith('1042')) }
+            : c.name === 'Done'
+              ? { ...c, cards: ['1042 · not ours', ...c.cards] }
+              : c
+        )
+        emit('dv-runs', runs)
+      }
+    } else if (answer) {
+      const t = now - answerStart
+      if (t < ANSWER_THINK) {
+        setState('thinking')
+      } else {
+        const due = Math.min(answer.lines.length, 1 + Math.floor((t - ANSWER_THINK) / ANSWER_STEP))
+        while (answerFired < due) lines.push(answer.lines[answerFired++])
+        setState('speaking')
+        if (answerFired >= answer.lines.length && t > ANSWER_THINK + answer.lines.length * ANSWER_STEP + ANSWER_HOLD) {
+          answer = null
+          setState('idle')
+        }
+      }
     }
   }
 
@@ -164,11 +249,41 @@ export function createDvBoard() {
     }
   }
 
+  // the width label() will draw for a letter-spaced string
+  function spacedWidth(text: string, size: number, spacing: number) {
+    ctx.font = `${size}px ${FONT}`
+    let total = 0
+    for (const ch of text) total += ctx.measureText(ch).width + spacing
+    return total
+  }
+
   // a one-line label that shrinks its font until it fits maxW
   function fit(text: string, x: number, y: number, size: number, color: string, maxW: number) {
     ctx.font = `${size}px ${FONT}`
     const w = ctx.measureText(text).width
     label(text, x, y, w > maxW ? Math.max(11, Math.floor((size * maxW) / w)) : size, color)
+  }
+
+  function layoutChips() {
+    let x = CHIP.x
+    chips = PROMPTS.map((p) => {
+      const w = spacedWidth(p.label.toUpperCase(), CHIP.size, CHIP.spacing) + CHIP.pad * 2
+      const box = { x, y: PILL.y, w, h: PILL.h }
+      x += w + CHIP.gap
+      return box
+    })
+  }
+
+  function inBox(b: Box, x: number, y: number, m = 0) {
+    return x >= b.x - m && x <= b.x + b.w + m && y >= b.y - m && y <= b.y + b.h + m
+  }
+
+  // what sits under a canvas point: the pill, a chip, a link line, or nothing
+  function target(x: number, y: number): string | null {
+    if (inBox(PILL, x, y, 8)) return 'pill'
+    for (let i = 0; i < chips.length; i++) if (inBox(chips[i], x, y, 4)) return `chip:${i}`
+    for (let i = 0; i < links.length; i++) if (inBox(links[i], x, y, 4)) return `link:${i}`
+    return null
   }
 
   function drawGlobe(cx: number, cy: number, R0: number, now: number, dt: number) {
@@ -190,10 +305,11 @@ export function createDvBoard() {
 
   function draw(now: number, dt: number) {
     const running = runStart >= 0
+    if (chips.length === 0) layoutChips()
     ctx.clearRect(0, 0, W, H)
     ctx.fillStyle = '#0b0e13'
     ctx.fillRect(0, 0, W, H)
-    if (hover && !running) {
+    if (hoverKey === 'pill' && !running) {
       ctx.fillStyle = 'rgba(244,241,234,.035)'
       ctx.fillRect(0, 0, W, H)
     }
@@ -223,12 +339,23 @@ export function createDvBoard() {
     ctx.stroke()
     ctx.strokeStyle = ACCENT
     ctx.lineWidth = 1.5
-    ctx.fillStyle = hover && !running ? 'rgba(201,169,97,.18)' : 'rgba(201,169,97,.06)'
+    ctx.fillStyle = hoverKey === 'pill' && !running ? 'rgba(201,169,97,.18)' : 'rgba(201,169,97,.06)'
     roundRect(PILL.x, PILL.y, PILL.w, PILL.h, 22)
     ctx.fill()
     ctx.stroke()
     label(running ? 'working…' : runs === 0 ? 'click me · wake D.V' : 'again', PILL.x + 22, PILL.y + 29, 14, running ? MUTED : ACCENT, { spacing: 3, upper: true })
-    label(running ? 'the ring on the desk follows the state' : 'one click runs an investigation, invented data', PILL.x + PILL.w + 18, PILL.y + 28, 14, MUTED)
+
+    // the prompt chips: ask D.V about Devak
+    chips.forEach((c, i) => {
+      const hot = hoverKey === `chip:${i}` && !running
+      ctx.strokeStyle = hot ? ACCENT : LINE
+      ctx.lineWidth = 1.5
+      ctx.fillStyle = hot ? 'rgba(201,169,97,.12)' : 'rgba(244,241,234,.03)'
+      roundRect(c.x, c.y, c.w, c.h, 22)
+      ctx.fill()
+      ctx.stroke()
+      label(PROMPTS[i].label, c.x + CHIP.pad, c.y + 29, CHIP.size, hot ? ACCENT : INK, { spacing: CHIP.spacing, upper: true })
+    })
 
     // staff cards
     let y = 306
@@ -268,20 +395,36 @@ export function createDvBoard() {
       if (col.cards.length > 6) label(`+${col.cards.length - 6} more`, x + 14, cy + 14, 11, MUTED)
     })
 
-    // the log
+    // the log: the last three lines; link lines are drawn in gold, underlined, and remembered for clicks
     ctx.strokeStyle = LINE
     ctx.beginPath()
-    ctx.moveTo(28, 626)
-    ctx.lineTo(W - 28, 626)
+    ctx.moveTo(LOG.x, LOG.line)
+    ctx.lineTo(W - 28, LOG.line)
     ctx.stroke()
+    links = []
     if (lines.length === 0) {
-      label(`› idle. ${runs > 0 ? 'ticket 1042 closed.' : 'waiting for a click.'}`, 28, 656, 14, MUTED, { font: MONO })
+      label(`› idle. ${runs > 0 ? 'ticket 1042 closed. ' : ''}ask me about Devak, or click the pill.`, LOG.x, LOG.first + 12, 14, MUTED, { font: MONO })
     } else {
-      let ly = 652
+      let ly = LOG.first
       for (const l of lines.slice(-3)) {
-        label(l.who, 28, ly, 14, CYAN, { font: MONO })
-        label(`· ${l.text}`, 118, ly, 14, INK, { font: MONO })
-        ly += 24
+        label(l.who, LOG.x, ly, 14, l.url ? ACCENT : CYAN, { font: MONO })
+        if (l.url) {
+          const text = `· ${l.text}`
+          const hot = hoverKey === `link:${links.length}`
+          label(text, LOG.textX, ly, 14, hot ? INK : ACCENT, { font: MONO })
+          ctx.font = `14px ${MONO}`
+          const w = ctx.measureText(text).width
+          ctx.strokeStyle = hot ? INK : ACCENT
+          ctx.lineWidth = 1
+          ctx.beginPath()
+          ctx.moveTo(LOG.textX, ly + 4)
+          ctx.lineTo(LOG.textX + w, ly + 4)
+          ctx.stroke()
+          links.push({ x: LOG.textX, y: ly - 15, w, h: 22, url: l.url })
+        } else {
+          label(`· ${l.text}`, LOG.textX, ly, 14, INK, { font: MONO })
+        }
+        ly += LOG.step
       }
     }
     texture.needsUpdate = true
@@ -300,20 +443,17 @@ export function createDvBoard() {
     },
     // uv from the raycast, y already flipped to canvas space (0 = top)
     hover(u: number | null, v?: number) {
-      if (u === null || v === undefined) {
-        hover = false
-        return
-      }
-      const x = u * W, y = v * H
-      hover = x >= PILL.x - 8 && x <= PILL.x + PILL.w + 8 && y >= PILL.y - 8 && y <= PILL.y + PILL.h + 8
+      hoverKey = u === null || v === undefined ? null : target(u * W, v * H)
     },
     hovering() {
-      return hover
+      return hoverKey !== null
     },
     click(u: number, v: number) {
-      const x = u * W, y = v * H
-      const onPill = x >= PILL.x - 8 && x <= PILL.x + PILL.w + 8 && y >= PILL.y - 8 && y <= PILL.y + PILL.h + 8
-      if (onPill || runs === 0) start(performance.now())
+      const key = target(u * W, v * H)
+      const now = performance.now()
+      if (key === 'pill' || (key === null && runs === 0 && !answer)) start(now)
+      else if (key && key.startsWith('chip:')) ask(Number(key.slice(5)), now)
+      else if (key && key.startsWith('link:')) window.open(links[Number(key.slice(5))].url, '_blank', 'noopener,noreferrer')
     },
     running() {
       return runStart >= 0

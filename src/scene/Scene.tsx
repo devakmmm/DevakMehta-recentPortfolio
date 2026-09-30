@@ -324,7 +324,8 @@ function Man2({
   // Clicks on the laptop. The scrollable content layer sits above the canvas and swallows pointer
   // events, so the canvas never sees them; listen on window and raycast against the laptop screen.
   // From the desk any hit on the screen flies the camera in (store.pov); at the screen the hit goes
-  // to the board. Links, buttons and the gallery keep their own clicks.
+  // to the board. Links, buttons and the gallery keep their own clicks. Board hits use `click`, not
+  // pointerdown: a click carries user activation on touch too, which the board's link lines need.
   const laptopLid = useMemo(() => {
     let lid: any = null
     model.traverse((o: any) => {
@@ -337,18 +338,18 @@ function Man2({
     const ray = new THREE.Raycaster()
     const ndc = new THREE.Vector2()
     const targets = laptopLid ? [laptopGlass, laptopLid] : [laptopGlass]
-    const hit = (ev: PointerEvent) => {
+    const hit = (ev: { clientX: number; clientY: number }) => {
       const cam: any = get().camera
       ndc.set((ev.clientX / window.innerWidth) * 2 - 1, -((ev.clientY / window.innerHeight) * 2 - 1))
       ray.setFromCamera(ndc, cam)
       const r = ray.intersectObjects(targets, false)
       return r.length ? r[0] : null
     }
-    const interactive = (ev: PointerEvent) => {
+    const interactive = (ev: Event) => {
       const t = ev.target as any
       return !!(t && t.closest && t.closest('a, button, input, textarea, .wk-gallery, .wk-detail, .dv-tag'))
     }
-    const onDown = (ev: PointerEvent) => {
+    const onClick = (ev: MouseEvent) => {
       if (ev.button !== 0 || interactive(ev)) return
       const h = hit(ev)
       if (!h) return
@@ -376,10 +377,10 @@ function Man2({
         if (document.body.style.cursor === 'pointer') document.body.style.cursor = ''
       }
     }
-    window.addEventListener('pointerdown', onDown)
+    window.addEventListener('click', onClick)
     window.addEventListener('pointermove', onMove)
     return () => {
-      window.removeEventListener('pointerdown', onDown)
+      window.removeEventListener('click', onClick)
       window.removeEventListener('pointermove', onMove)
       document.body.style.cursor = ''
     }
