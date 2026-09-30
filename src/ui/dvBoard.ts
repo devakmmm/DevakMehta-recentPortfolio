@@ -164,6 +164,13 @@ export function createDvBoard() {
     }
   }
 
+  // a one-line label that shrinks its font until it fits maxW
+  function fit(text: string, x: number, y: number, size: number, color: string, maxW: number) {
+    ctx.font = `${size}px ${FONT}`
+    const w = ctx.measureText(text).width
+    label(text, x, y, w > maxW ? Math.max(11, Math.floor((size * maxW) / w)) : size, color)
+  }
+
   function drawGlobe(cx: number, cy: number, R0: number, now: number, dt: number) {
     theta += dt * (state === 'idle' ? 0.35 : state === 'thinking' ? 0.9 : 1.4)
     const t = now / 1000
@@ -203,6 +210,10 @@ export function createDvBoard() {
     label('LIVE · 3 sessions · 18 tickets', 940, 56, 14, MUTED, { align: 'right' })
     label('0 alerts · read-only · nothing leaves the machine', 940, 80, 14, MUTED, { align: 'right' })
     drawGlobe(1050, 90, 62, now, dt)
+
+    // what this is, in two lines; each shrinks to fit the band left of the globe
+    fit('D.V is the assistant I built: it triages a ticket, runs the checks, files the pull request and posts the verdict here.', 28, 150, 16, INK, 930)
+    fit("I keep adding staff to it. This is a look-alike with invented data; the real one runs on my laptop, and the puck's ring follows it.", 28, 178, 16, MUTED, 930)
 
     // the pill
     const pulse = running ? 0 : (Math.sin(now / 300) + 1) / 2

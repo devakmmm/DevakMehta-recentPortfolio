@@ -68,12 +68,17 @@ test('the desk has its story parts', () => {
   assert.ok(!has('mug') && !has('mug-initials'), 'the mug is gone')
 })
 
-// The cat: all black, sitting at the back of the desk, eyes that follow the cursor (the only nodes
+// The cat: grey all over, sitting at the back of the desk, eyes that follow the cursor (the only nodes
 // whose names contain "eye", so the scene's eye-follow drives them and nothing else). Nothing hangs
 // under the chin: the collar and tag read as a tongue from the hero camera.
-test('a black cat sits on the desk, and its eyes are the eyes', () => {
+test('a grey cat sits on the desk, and its eyes are the eyes', () => {
   const g = readGlbJson(GLB)
   const names = (g.nodes || []).map((n) => n.name || '')
+  // the fur is a mid grey (linear base colour, equal channels), not black
+  const body = g.nodes.find((n) => n.name === 'cat-body')
+  const fur = g.materials[g.meshes[body.mesh].primitives[0].material].pbrMetallicRoughness.baseColorFactor
+  const [r, gg, b] = fur
+  assert.ok(r > 0.1 && r < 0.6 && Math.max(r, gg, b) - Math.min(r, gg, b) < 0.06, `fur should be a mid grey, got ${fur}`)
   for (const n of ['cat', 'cat-body', 'cat-chest', 'cat-head', 'cat-muzzle', 'cat-ear-l', 'cat-ear-r', 'cat-eye-l', 'cat-eye-r', 'cat-nose', 'cat-tail']) {
     assert.ok(names.includes(n), `cat part missing: ${n}`)
   }

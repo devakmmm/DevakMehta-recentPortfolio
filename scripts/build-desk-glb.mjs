@@ -73,7 +73,7 @@ const M = {
   pen: std('#23395b', { roughness: 0.4, metalness: 0.2 }),
   card: std('#efe9dc', { roughness: 0.85 }),
   stickerPaper: std('#f7f4ee', { roughness: 0.6 }),
-  fur: std('#141416', { roughness: 0.95 }),
+  fur: std('#80838a', { roughness: 0.95 }),
   catEye: std('#c9d36a', { roughness: 0.25, emissive: '#3b4a10', emissiveIntensity: 0.25 }),
   pupil: std('#0a0a0a', { roughness: 0.3 }),
   pink: std('#e2a0a8', { roughness: 0.7 }),
@@ -227,7 +227,7 @@ const hookColors = ['#e86b6b', '#58a6ff', '#5fbf6a', '#f0a15a', '#7fe0e8', '#9b7
 hookColors.forEach((c, i) => card.add(cyl(mm(3), mm(1.2), std(c, { roughness: 0.5 }), `hooks-dot-${i}`, [(i % 3 - 1) * 0.02, 0.0036, (i < 3 ? -0.002 : 0.014)], [0, 0, 0], 20)))
 scene.add(card)
 
-// ---- the cat: all black, sitting at the back-right, eyes that follow the cursor ----------------
+// ---- the cat: grey, sitting at the back-right, eyes that follow the cursor ----------------------
 const catPos = [0.56, TOP, -0.29]
 const cat = group('cat', catPos, -0.35)
 cat.scale.setScalar(0.7)
