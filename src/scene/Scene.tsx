@@ -68,14 +68,14 @@ function GradientBackground() {
 // 所有光源（HDRI 环境 + 半球 + 主/补方向光）
 function Lights() {
   const c = {
-    envIntensity: 0.85,
-    hemiIntensity: 1.15,
+    envIntensity: 0.7,
+    hemiIntensity: 0.9,
     hemiSky: '#ffffff',
     hemiGround: '#404040',
-    keyIntensity: 2.35,
+    keyIntensity: 1.7,
     keyColor: '#ffd9c6',
     keyPos: [5, 8, 5] as [number, number, number],
-    fillIntensity: 2.25,
+    fillIntensity: 1.1,
     fillColor: '#9fc6ff',
     fillPos: [-5, 4, -4] as [number, number, number],
   }
@@ -116,10 +116,11 @@ function Man2({
   dofBokehRef: MutableRefObject<number>
   dofRangeRef: MutableRefObject<number>
 }) {
+  // The desk glb is authored in metres with its own camera path, so it sits at the origin at scale 1.
   const posX = 0
-  const posY = 0.4
-  const posZ = -0.7
-  const scale = 2.25
+  const posY = 0
+  const posZ = 0
+  const scale = 1
   const rotationY = 0
 
   // mobilePullback：移动端相机沿「焦点→相机」方向拉远的倍率（1 = 不变，1.2 = 远 20%）
@@ -129,7 +130,7 @@ function Man2({
     dwell: 0.35,
     parallax: 4,
     parallaxEase: 0.1,
-    mobilePullback: 1.2,
+    mobilePullback: 1.55,
     mobileTimelineShift: 0.12,
   }
 
@@ -519,10 +520,10 @@ function Post2({
     bloomIntensity: 0.6,
     bloomThreshold: 0.82,
     dof: true,
-    startBokeh: 7.4,
-    startRange: 2.0,
-    focusBokeh: 11.0,
-    focusRange: 0.15,
+    startBokeh: 4.0,
+    startRange: 1.6,
+    focusBokeh: 8.0,
+    focusRange: 0.10,
     startBlendFrame: 48,
     endBlendFrame: RESUME_FRAMES - 50, // 末节点附近回到"起始帧"景深档（原 250−50=200）
   }

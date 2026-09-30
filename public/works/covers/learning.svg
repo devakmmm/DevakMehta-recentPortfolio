@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-label="Learning in public">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6f906f"/><stop offset="1" stop-color="#dbd3b5"/></linearGradient></defs>
+  <rect width="640" height="400" fill="url(#g)"/>
+  <g stroke="#f4f1ea" stroke-width="3" fill="none" stroke-linecap="round">
+    <path d="M80 300 C 160 300, 200 120, 300 130 S 460 260, 560 100"/>
+    <path d="M80 240 L 560 240" stroke-opacity="0.35" stroke-dasharray="6 10"/>
+  </g>
+  <g font-family="Helvetica Neue, sans-serif" font-size="14" letter-spacing="3" fill="#f4f1ea">
+    <text x="80" y="330">LOSS</text><text x="520" y="330">STEPS</text>
+  </g>
+  <text x="40" y="60" font-family="Cormorant Upright, serif" font-style="italic" font-size="30" fill="#f4f1ea">From "what is a gradient" to a served model.</text>
+</svg>

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-label="Agent tooling">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6f906f"/><stop offset="1" stop-color="#dbd3b5"/></linearGradient></defs>
+  <rect width="640" height="400" fill="url(#g)"/>
+  <g font-family="ui-monospace, Menlo, monospace" font-size="22" fill="#f4f1ea">
+    <text x="60" y="120">$ git push</text>
+    <text x="60" y="162" fill="#ffd9b3">held: walk the diff first</text>
+    <text x="60" y="222">$ end turn</text>
+    <text x="60" y="264" fill="#ffd9b3">held: cite the evidence</text>
+  </g>
+  <g transform="translate(470 120)">
+    <circle cx="0" cy="0" r="14" fill="#e86b6b"/><circle cx="44" cy="0" r="14" fill="#58a6ff"/><circle cx="88" cy="0" r="14" fill="#5fbf6a"/>
+    <circle cx="0" cy="44" r="14" fill="#f0a15a"/><circle cx="44" cy="44" r="14" fill="#7fe0e8"/><circle cx="88" cy="44" r="14" fill="#9b7fe0"/>
+  </g>
+  <text x="40" y="352" font-family="Cormorant Upright, serif" font-style="italic" font-size="30" fill="#f4f1ea">Six hooks. Standard library. 24 tests.</text>
+</svg>

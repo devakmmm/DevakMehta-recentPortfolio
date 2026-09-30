@@ -47,3 +47,22 @@ test('CameraAction clip exists and spans hero → 5 stops → works tail at 24 f
   const camNode = g.nodes.findIndex((n) => n.camera !== undefined)
   assert.ok(clip.channels.some((c) => c.target.node === camNode), 'clip does not animate the camera node')
 })
+
+// Slice 3: the desk tells the story. Every object that a timeline stop points at has its real parts,
+// the puck carries one sticker per build, the laptop screen shows a snake, and the hologram inside
+// the pyramid is the "eye" that follows the cursor.
+test('the desk has its story parts', () => {
+  const g = readGlbJson(GLB)
+  const names = (g.nodes || []).map((n) => n.name || '')
+  const has = (n) => names.includes(n)
+  for (const n of ['puck-shell', 'puck-lid', 'puck-ring', 'puck-button', 'puck-grille', 'puck-cable', 'devkit-board']) {
+    assert.ok(has(n), `puck detail missing: ${n}`)
+  }
+  assert.ok(names.filter((n) => n.startsWith('puck-led-')).length === 16, '16 NeoPixels expected on the ring')
+  assert.ok(names.filter((n) => n.startsWith('sticker-')).length >= 5, 'at least five stickers (one per build)')
+  for (const n of ['laptop-base', 'laptop-screen', 'laptop-trackpad', 'snake-food']) assert.ok(has(n), `laptop detail missing: ${n}`)
+  assert.ok(names.filter((n) => n.startsWith('laptop-key-')).length >= 60, 'a keyboard needs keys')
+  assert.ok(names.filter((n) => n.startsWith('snake-seg-')).length >= 6, 'a snake on the screen')
+  for (const n of ['pyramid-glass', 'pyramid-base', 'eye-holo']) assert.ok(has(n), `pyramid detail missing: ${n}`)
+  for (const n of ['notebook-cover', 'notebook-pages', 'pen', 'hooks-card', 'mug']) assert.ok(has(n), `desk detail missing: ${n}`)
+})

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-label="Hardware">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6f906f"/><stop offset="1" stop-color="#dbd3b5"/></linearGradient></defs>
+  <rect width="640" height="400" fill="url(#g)"/>
+  <g transform="translate(180 90)">
+    <rect x="0" y="0" width="280" height="204" rx="18" fill="#767b81" stroke="#3d4147" stroke-width="4"/>
+    <rect x="12" y="12" width="256" height="180" rx="12" fill="#eaf3f8" fill-opacity="0.35" stroke="#f4f1ea" stroke-opacity="0.6" stroke-width="2"/>
+    <circle cx="140" cy="92" r="56" fill="none" stroke="#1d2b22" stroke-width="10"/>
+    <g fill="#7fd0ff">
+      <circle cx="140" cy="36" r="6"/><circle cx="180" cy="52" r="6"/><circle cx="196" cy="92" r="6"/><circle cx="180" cy="132" r="6"/>
+      <circle cx="140" cy="148" r="6"/><circle cx="100" cy="132" r="6"/><circle cx="84" cy="92" r="6"/><circle cx="100" cy="52" r="6"/>
+      <circle cx="161" cy="40" r="6"/><circle cx="192" cy="71" r="6"/><circle cx="192" cy="113" r="6"/><circle cx="161" cy="144" r="6"/>
+      <circle cx="119" cy="144" r="6"/><circle cx="88" cy="113" r="6"/><circle cx="88" cy="71" r="6"/><circle cx="119" cy="40" r="6"/>
+    </g>
+    <circle cx="140" cy="176" r="11" fill="#cf3c3c" stroke="#7a2418" stroke-width="3"/>
+  </g>
+  <text x="40" y="352" font-family="Cormorant Upright, serif" font-style="italic" font-size="30" fill="#f4f1ea">80 × 110 × 45 mm. Zero libraries.</text>
+</svg>

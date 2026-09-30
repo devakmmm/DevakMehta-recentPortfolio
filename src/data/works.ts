@@ -121,6 +121,11 @@ export const WORKS: Record<'zh' | 'en', WorksLang> = {
   zh: EN,
 }
 
-// Section cover images (by section id). None yet: the card falls back to its number.
-// Add our own renders under public/works/covers/ and list them here; nothing downloaded.
-export const SECTION_COVERS: Record<string, string> = {}
+// Section cover images (by section id): hand-drawn SVGs in the site's palette, nothing downloaded.
+const COVERS = `${import.meta.env.BASE_URL}works/covers/`
+export const SECTION_COVERS: Record<string, string> = {
+  models: `${COVERS}models.svg`,
+  hardware: `${COVERS}hardware.svg`,
+  agents: `${COVERS}agents.svg`,
+  learning: `${COVERS}learning.svg`,
+}
