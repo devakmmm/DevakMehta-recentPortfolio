@@ -19,9 +19,7 @@ export default function DvScreen({ onTap }: { onTap?: () => void }) {
         style={{
           cursor: 'pointer',
           fontFamily: 'Helvetica Neue, system-ui, sans-serif',
-          fontSize: 12,
-          letterSpacing: '.28em',
-          textTransform: 'uppercase',
+          fontSize: 14,
           color: '#f4f1ea',
           background: 'rgba(12,16,24,.72)',
           border: '1px solid rgba(244,241,234,.14)',
@@ -32,7 +30,7 @@ export default function DvScreen({ onTap }: { onTap?: () => void }) {
         }}
       >
         <style>{`@keyframes dv-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}`}</style>
-        click me ↓
+        Click me
       </div>
     </Html>
   )

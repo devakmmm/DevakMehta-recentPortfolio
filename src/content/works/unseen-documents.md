@@ -6,12 +6,12 @@ tags: [decision model, review lane, calibration]
 link: https://devakmmm.github.io/
 ---
 
-A model that checks whether a document is what it claims to be, and knows when to hand the call to
-a person. The same recipe as Snake: one sentence about the document, one question, one probability.
+A model that reads the start of a document, answers one yes or no question about what kind of
+document it is, and gives a probability. When it is unsure, or disagrees with a simple keyword
+check, the call goes to a person.
 
-- Paired with one simple second check, it accepts only when both agree, rejects only when both agree, and sends the rest to a person
-- On document types it knows: 4% go to a person, none wrong
-- On document types it has never seen: 57% go to a person, still none wrong
+- On 600 generated documents of kinds it knows, 4% went to a person and none were wrong
+- On 600 generated documents of kinds it had never seen, the model alone got 47% right. With the keyword check it made no wrong accept or reject, and sent 57% to a person
 
-Novelty turns into review work instead of silent mistakes, which is the property that matters when a
-decision is worth money.
+Novelty turns into review work instead of silent mistakes, which is what matters when a decision is
+worth money.

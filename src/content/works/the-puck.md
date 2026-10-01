@@ -1,20 +1,21 @@
 ---
 title: The puck
 year: 2026
-role: firmware, bridge, enclosure
-tags: [ESP32-S3, voice assistant, local only]
+role: firmware, bridge
+tags: [ESP32-S3, voice assistant, in progress]
 link: https://devakmmm.github.io/
 ---
 
-A coaster-sized talking assistant that lives on the desk. Say the wake word and ask; the puck
-listens, sends the audio to the model running on the laptop next to it, and speaks the answer back.
-The ring of 16 lights shows what it is doing, listening, thinking or speaking, the same states the
-board on the laptop screen goes through.
+A desk voice assistant I'm building on an ESP32-S3 board. When it's done, you say the wake word and
+ask a question. The laptop turns your speech into text, a hosted model (Claude) writes the reply, and
+the laptop speaks it back through the puck. A ring of 16 lights will show when it is listening,
+thinking or speaking.
 
-- Inside: an ESP32-S3, a microphone, a speaker, a 16-pixel LED ring and one button
-- Firmware written from scratch, with its own WebSocket server and its own LED driver, and no third-party libraries
-- Everything intelligent stays on the laptop; the puck only moves audio and shows state
-- Audio never leaves the local network: the laptop dials the puck, and the puck opens no inbound port
+- The firmware is written from scratch, with its own WebSocket server and LED driver and no third-party libraries. The build is 961,315 bytes
+- On the real board it joins WiFi and pairs with the laptop. The microphone, speaker, ring and button come next
+- Audio stays on my home network. Only the transcript text goes to the model
+- The laptop connects to the puck, so the laptop opens no inbound port, and the puck itself makes no outbound connections
 
-The object on the desk is the real enclosure at its real size, 80 by 110 by 45 millimetres, down to
-the speaker grille on a 5 millimetre grid. Click the laptop to see the board the ring follows.
+The object on the desk is modelled on the real enclosure at its real size, 80 by 110 by 45
+millimetres, with the speaker grille planned on a 5 millimetre grid. On this desk, its ring follows
+the board on the laptop.

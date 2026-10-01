@@ -46,7 +46,6 @@ function SectionCard({
   return (
     <div className="wk-card">
       <div className="wk-card-head">
-        <span className="wk-card-no">{section.no}</span>
         <h3 className="wk-card-title">{section.title}</h3>
         <span className="wk-card-tagline">{section.tagline}</span>
       </div>
@@ -55,7 +54,6 @@ function SectionCard({
           <img src={cover} alt="" onError={() => setCoverError(true)} />
         ) : (
           <div className="wk-card-cover-ph" aria-hidden="true">
-            <span className="wk-card-cover-no">{section.no}</span>
           </div>
         )}
       </div>

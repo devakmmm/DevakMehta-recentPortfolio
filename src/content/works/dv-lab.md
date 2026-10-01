@@ -1,17 +1,17 @@
 ---
 title: D.V's Lab
 year: 2026
-role: renderer, gestures, pyramid
+role: renderer, gestures
 tags: [WebGL, hand tracking, pepper's ghost]
 link: https://devakmmm.github.io/
 ---
 
-A webcam watches your hands. An open palm turns a 3D part, a pinch grabs and drags it, two hands
-scale it, and a held fist blows it apart into its pieces.
+A webcam watches your hands. An open palm turns a 3D part on screen, a pinch grabs and drags it, two
+hands scale it, and a held fist pulls it apart into its pieces.
 
-- Own WebGL renderer, no three.js, 27 tests, nothing bought
-- Hand tracking runs in the browser from a vendored model; unplug the network and it still tracks
+- It runs on a WebGL renderer I wrote, without three.js, and has 27 tests
+- Hand tracking runs in the browser from a model bundled with the page, so it needs no network once loaded
 - The part it shows is the puck's own bill of materials, in exploded view
 
-Next is the pepper's ghost pyramid on a spare monitor, which is what the small glass pyramid on the
-desk stands for. The hologram inside it turns toward your cursor.
+Next is a pepper's ghost pyramid on a spare monitor, so the part appears to float. The small glass
+pyramid on this desk stands for it, and the hologram inside turns toward your cursor.

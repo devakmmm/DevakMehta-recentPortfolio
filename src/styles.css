@@ -1393,7 +1393,7 @@ canvas {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #000000;
+  background: #cfcdb0;
   opacity: 1;
   transition: opacity 0.6s ease;
 }
@@ -1417,19 +1417,18 @@ canvas {
 
 .lr-track {
   fill: none;
-  stroke: rgba(244, 241, 234, 0.12);
+  stroke: rgba(31, 38, 31, 0.14);
   stroke-width: 3;
 }
 
 .lr-arc {
   fill: none;
-  stroke: #6f906f;
+  stroke: #3f6a45;
   stroke-width: 3;
   stroke-linecap: round;
   transform: rotate(-90deg);
   transform-origin: 50% 50%;
   transition: stroke-dashoffset 0.35s ease;
-  filter: drop-shadow(0 0 6px rgba(111, 144, 111, 0.55));
 }
 
 @keyframes lrSpin {
@@ -1528,7 +1527,15 @@ canvas {
    so the hero layer uses a deep green-black ink with a faint cream halo. Later sections keep cream:
    the scrim darkens the scene there. */
 .about-title { color: #1f261f; text-shadow: 0 1px 0 rgba(244, 241, 234, 0.35), 0 0 18px rgba(244, 241, 234, 0.35); }
-.about-body { color: rgba(31, 38, 31, 0.88); font-size: clamp(13px, 1.15vw, 17px); text-shadow: 0 0 14px rgba(244, 241, 234, 0.45); }
+.about-body {
+  color: #1f261f;
+  font-family: 'Helvetica Neue', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-weight: 400;
+  font-size: clamp(14px, 1.1vw, 17px);
+  line-height: 1.5;
+  max-width: min(36em, 88vw);
+  text-shadow: 0 0 14px rgba(244, 241, 234, 0.5);
+}
 .hero-meta { color: rgba(31, 38, 31, 0.62); }
 .hero-meta .hm-name { color: #1f261f; }
 .hero-mark { color: rgba(31, 38, 31, 0.45); }
@@ -1562,21 +1569,91 @@ canvas {
   border-radius: 999px;
   background: rgba(12, 16, 24, 0.72);
   color: #f4f1ea;
-  font: 12px/1 'Helvetica Neue', system-ui, sans-serif;
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
+  font: 14px/1 'Helvetica Neue', system-ui, sans-serif;
   cursor: pointer;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.4s ease;
 }
 .pov-back small {
-  font-size: 10px;
-  letter-spacing: 0.16em;
+  font-size: 12px;
   color: rgba(244, 241, 234, 0.55);
+}
+.pov .tb-name,
+.pov [data-three-noise-overlay] {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: opacity 0.4s ease;
 }
 .pov .pov-back {
   opacity: 1;
   pointer-events: auto;
   transition-delay: 0.7s;
 }
+
+/* ---------- The top bar: who this is, and the fast paths out (the minimalist page, the resume) ----------
+   Sits above the loading screen (z-index 9999) so neither waits for the 3D desk to load. Each item is
+   its own light pill, readable on the black loader, the sage hero and the darkened timeline alike. */
+.topbar {
+  position: fixed;
+  top: calc(14px + env(safe-area-inset-top, 0px));
+  left: 16px;
+  right: 16px;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  pointer-events: none;
+  font-family: 'Helvetica Neue', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+.topbar > * { pointer-events: auto; }
+.tb-links { display: flex; gap: 8px; }
+.tb-name,
+.tb-btn {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  background: rgba(238, 240, 231, 0.92);
+  color: #1f261f;
+  font-size: 14px;
+  line-height: 1.2;
+  text-decoration: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14);
+}
+.tb-name b { font-weight: 600; }
+.tb-name span { color: #56604f; }
+.tb-btn:hover { background: #ffffff; }
+.tb-primary { background: #1f261f; color: #eef0e7; font-weight: 600; }
+.tb-primary:hover { background: #2e392e; }
+.tb-btn:focus-visible { outline: 2px solid #1f261f; outline-offset: 2px; }
+@media (max-width: 520px) {
+  .tb-name span { display: none; }
+}
+
+/* ---------- When the 3D desk cannot load (App.tsx, store.deskFailed) ----------
+   A plain note and the way to the one-page version, above the page content. */
+.desk-failed {
+  position: fixed;
+  left: 50%;
+  top: 42%;
+  transform: translate(-50%, -50%);
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  max-width: min(420px, calc(100vw - 32px));
+  padding: 22px 26px;
+  border-radius: 16px;
+  background: rgba(238, 240, 231, 0.96);
+  color: #1f261f;
+  font: 16px/1.5 'Helvetica Neue', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  text-align: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+}
+.desk-failed p { margin: 0; }
+/* the scene never painted: give the page the desk's sand so the hero text stays readable */
+body:has(.desk-failed) { background: #d6d3b8; }

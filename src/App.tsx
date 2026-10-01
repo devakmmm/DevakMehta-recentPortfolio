@@ -1,13 +1,15 @@
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { motion, useScroll, useTransform, type MotionValue } from 'framer-motion'
+import { motion, useScroll, useTransform } from 'framer-motion'
 import * as THREE from 'three'
 import Scene from './scene/Scene'
 import NoiseOverlay from './ui/NoiseOverlay'
 import Resume from './ui/Resume'
 import Works from './ui/Works'
 import LoadingScreen from './ui/LoadingScreen'
+import ErrorBoundary from './ui/ErrorBoundary'
 import { useStore } from './store'
+import { PROFILE } from './data/profile'
 
 function Backdrop() {
   // 点击空白处收起详情
@@ -22,16 +24,14 @@ function Backdrop() {
 
 type Lang = 'en' | 'zh'
 
-const ABOUT = {
-  title: 'About Devak',
-  paragraphs: [
-    "I'm Devak. I build things on one laptop with an integrated GPU: a decision model that plays Snake from sentences, a voice puck with zero-library firmware, a hand-tracked 3D lab, robot policies in simulation, and the hooks that keep my AI coding agents honest. Own code, vendored models, nothing leaves the machine. Every write-up carries one measured number and one real failure.",
-  ],
-}
+const ABOUT = { title: PROFILE.desk.title, paragraphs: PROFILE.desk.hero }
+
+// a resume in public/ ('resume.pdf') or a full URL; the Resume button shows only when there is one
+const RESUME_HREF = PROFILE.links.resume ? (/^https?:/.test(PROFILE.links.resume) ? PROFILE.links.resume : `./${PROFILE.links.resume}`) : ''
 
 const COPY = { en: ABOUT, zh: ABOUT }
 
-function Hero({ lang, cueOpacity }: { lang: Lang; cueOpacity: MotionValue<number> }) {
+function Hero({ lang }: { lang: Lang }) {
   const { title, paragraphs } = COPY[lang]
   const aboutRef = useRef(null)
   // 触发起点提前：about 顶部位于视口 60% 处即开始（offset[0] 进度 0），到达顶部为进度 1
@@ -67,12 +67,6 @@ function Hero({ lang, cueOpacity }: { lang: Lang; cueOpacity: MotionValue<number
           ))}
         </div>
       </motion.div>
-      <motion.div className="scroll-cue" style={{ opacity: cueOpacity }} aria-hidden="true">
-        <span className="scroll-cue-label">{lang === 'en' ? 'SCROLL' : '向下滚动'}</span>
-        <span className="scroll-cue-track">
-          <span className="scroll-cue-dot" />
-        </span>
-      </motion.div>
     </section>
   )
 }
@@ -102,21 +96,19 @@ export default function App() {
   const fogBlur = useTransform(worksProgress, [0, 1], ['blur(0px)', 'blur(10px)'])
   // 滚动渐暗：离开首屏后压暗 3D 场景，保证履历文字可读
   const scrimOpacity = useTransform(scrollY, [0, 520], [0, 0.4])
-  // 首屏滚动提示随之淡出
-  const cueOpacity = useTransform(scrollY, [0, 160], [1, 0])
   // 首屏底部渐变底色：开始滑动后淡出
   const heroGradientOpacity = useTransform(scrollY, [0, 240], [1, 0])
   // 磨砂右轨：进入履历区后淡入（首屏不磨砂）
   const vh = typeof window !== 'undefined' ? window.innerHeight : 800
   const railOpacity = useTransform(scrollY, [vh * 0.5, vh * 1.1], [0, 1])
-  // 首屏装饰画框/角标：滚动后淡出
-  const heroChromeOpacity = useTransform(scrollY, [0, 280], [1, 0])
 
   // First person at the laptop (store.pov): the page layers fade while the camera is at the screen
   // (html.pov, styles.css), scroll / touch / Esc bring the desk back, and the layers return once
   // the camera is nearly home.
   const pov = useStore((s) => s.pov)
   const setPov = useStore((s) => s.setPov)
+  const deskFailed = useStore((s) => s.deskFailed)
+  const setDeskFailed = useStore((s) => s.setDeskFailed)
   useEffect(() => {
     const root = document.documentElement
     if (!pov) {
@@ -145,6 +137,7 @@ export default function App() {
 
       {/* 固定的 3D 背景 */}
       <div className="scene-bg">
+        <ErrorBoundary fallback={null} onError={setDeskFailed}>
         <Canvas
           shadows={{ type: THREE.PCFShadowMap }}
           dpr={[1, 1.5]}
@@ -157,7 +150,17 @@ export default function App() {
             <Scene />
           </Suspense>
         </Canvas>
+        </ErrorBoundary>
       </div>
+
+      {deskFailed && (
+        <div className="desk-failed" role="status">
+          <p>The 3D desk did not load in this browser.</p>
+          <a className="tb-btn tb-primary" href="./minimal/">
+            Open the one-page version
+          </a>
+        </div>
+      )}
 
       {/* 滚动渐暗蒙层 */}
       <motion.div className="scrim" style={{ opacity: scrimOpacity }} aria-hidden="true" />
@@ -182,33 +185,39 @@ export default function App() {
       {/* 中英切换暂时隐藏，默认中文 */}
       {/* <LangToggle lang={lang} onToggle={() => setLang((l) => (l === 'en' ? 'zh' : 'en'))} /> */}
 
-      {/* 首屏装饰：发丝内框 + 四角定位标 + 角标元数据（随滚动淡出） */}
-      <motion.div className="hero-chrome" style={{ opacity: heroChromeOpacity }} aria-hidden="true">
-        <div className="hero-frame" />
-        <span className="hero-mark tl">+</span>
-        <span className="hero-mark tr">+</span>
-        <span className="hero-mark bl">+</span>
-        <span className="hero-mark br">+</span>
-        <div className="hero-meta hm-tl">
-          <span className="hm-name">Devak Mehta</span>
-          <span>Code · Hardware · Models</span>
+      {/* The top bar: who this is, and the fast paths out (the minimalist page, the resume). Above the
+          loading screen, so neither waits for the 3D desk to load. The resume shows once
+          data/profile.ts has one. */}
+      <header className="topbar">
+        <div className="tb-name">
+          <b>{PROFILE.name}</b>
+          <span>{PROFILE.role}</span>
         </div>
-        <div className="hero-meta hm-tr">Portfolio — 2026</div>
-        <div className="hero-meta hm-bl">AI Engineer</div>
-        <div className="hero-meta hm-right">One laptop, integrated GPU</div>
-      </motion.div>
+        <nav className="tb-links" aria-label="Quick links">
+          <a className="tb-btn" href="./minimal/" title="A one-page version of this site">
+            Minimalist
+          </a>
+          {RESUME_HREF && (
+            <a className="tb-btn tb-primary" href={RESUME_HREF} target="_blank" rel="noopener noreferrer">
+              Resume
+            </a>
+          )}
+        </nav>
+      </header>
 
       {/* first person at the laptop: the way back */}
       <button className="pov-back" type="button" onClick={() => setPov(false)} aria-hidden={!pov} tabIndex={pov ? 0 : -1}>
-        ← Back to the desk <small>scroll or Esc</small>
+        ← Back to the desk <small>or press Esc</small>
       </button>
 
       {/* 全屏胶片噪点蒙层（multiply 混合） */}
-      <NoiseOverlay />
+      <ErrorBoundary fallback={null}>
+        <NoiseOverlay />
+      </ErrorBoundary>
 
       {/* 可滚动内容 */}
       <main className="content">
-        <Hero lang={lang} cueOpacity={cueOpacity} />
+        <Hero lang={lang} />
         <Resume lang={lang} />
         <Works lang={lang} innerRef={worksRef} />
       </main>

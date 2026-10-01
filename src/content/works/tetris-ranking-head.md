@@ -1,18 +1,18 @@
 ---
-title: Tetris, the ranking head
+title: Tetris, picking the best spot
 year: 2026
 role: training, evaluation
 tags: [decision model, ranking, calibration]
 link: https://devakmmm.github.io/
 ---
 
-A model that picks where the next Tetris piece goes. Every landing spot for the current piece is
-written up as a sentence, the model scores all of them in one pass, and the piece goes to the top
-score: one softmax over the turn's spots, so it compares the options against each other instead of
-judging each one alone.
+A model that picks where the next Tetris piece goes. It scores every possible landing spot for the
+current piece and takes the best one, so it compares the options instead of judging each one alone.
 
 - Trained in about 27 minutes on the integrated GPU
-- Survives 1,000 pieces and matches its teacher on 2 of 3 seeds
+- Played 1,000 pieces on 2 of 3 test games, matching its teacher. On the third it topped out at 351 pieces, where the teacher reached 474
 
-It learned by copying a teacher's picks, so the teacher is its ceiling. The loss must match the
-decision: that sentence is the whole lesson, and it moved straight into the next build.
+The first version judged one spot at a time. Its probabilities were accurate and it still played
+badly, because the question it answered was not the decision the game needed. Training it to pick the
+best of all the spots fixed that. It learned by copying a teacher's picks, so the teacher is its
+ceiling.

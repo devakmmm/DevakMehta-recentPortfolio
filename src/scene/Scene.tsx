@@ -7,6 +7,7 @@ import Env from './Env'
 import { FOCUS_POINTS, FRAMES_PER_NODE } from '../data/focusPoints'
 import DvScreen from '../ui/DvScreen'
 import { createDvBoard } from '../ui/dvBoard'
+import ErrorBoundary from '../ui/ErrorBoundary'
 import { useStore } from '../store'
 import { povDistance } from './pov'
 
@@ -87,6 +88,8 @@ function Lights() {
 
   return (
     <>
+      {/* if the lighting file fails to load, the desk still renders, lit by the lamps below */}
+      <ErrorBoundary fallback={null}>
       <Env
         intensity={c.envIntensity}
         rotationX={0}
@@ -96,6 +99,7 @@ function Lights() {
         bgIntensity={0.4}
         bgBlur={0}
       />
+      </ErrorBoundary>
       <hemisphereLight args={[c.hemiSky, c.hemiGround, c.hemiIntensity]} />
       <directionalLight
         position={c.keyPos}

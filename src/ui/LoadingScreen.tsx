@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useProgress } from '@react-three/drei'
+import { useStore } from '../store'
 
 // 全屏加载遮罩：读取 three LoadingManager 进度（useProgress），
 // 模型/贴图全部加载完（进度到过 100）后淡出并卸载，确保进入时场景已就绪。
@@ -7,6 +8,7 @@ import { useProgress } from '@react-three/drei'
 // 用 CSS 过渡 + setTimeout 控制淡出/卸载（不依赖 rAF，后台/离屏也可靠）。
 export default function LoadingScreen() {
   const { progress } = useProgress()
+  const deskFailed = useStore((s) => s.deskFailed) // the 3D desk failed: get out of the way
   // reached：进度是否到过 100%（单向 false→true，避免分批加载的抖动）
   const [reached, setReached] = useState(false)
   const [hiding, setHiding] = useState(false) // 开始淡出
@@ -30,7 +32,7 @@ export default function LoadingScreen() {
     }
   }, [reached])
 
-  if (removed) return null
+  if (removed || deskFailed) return null
 
   const R = 34
   const C = 2 * Math.PI * R

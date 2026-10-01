@@ -1,12 +1,16 @@
 import * as THREE from 'three'
+import { PROFILE } from '../data/profile'
+import { chipLabel, pillLabel, stateWord, wrapText } from './boardText'
 
 // The D.V board, drawn onto a 2D canvas that is the laptop screen's texture. A look-alike of the
 // session board Devak runs his agents from, with FABRICATED data: every ticket, count and line here
-// is invented. Clicking the pill wakes D.V: the globe goes thinking then speaking, four staff lines
-// type out an invented investigation, a card moves to Done, and the puck's ring on the desk follows
+// is invented. Clicking the pill runs a demo investigation: the globe goes thinking then speaking, four
+// staff lines type out into the log, a card moves to Done, and the puck's ring on the desk follows
 // the state through a `dv-state` DOM event (scene/Scene.tsx listens). `dv-runs` fires per completed run.
-// Four prompt chips beside the pill ask D.V about Devak; those answers are true, unlike the tickets,
-// and arrive in the log one line at a time. The "follow" answer's lines are links.
+// Four prompt chips beside the pill ask D.V about Devak. Those answers are true (they come from
+// data/profile.ts, the same source as the minimalist page) and are typed into an answer card over the
+// kanban, in large type; the chip reads RUNNING while its answer is being written (ui/boardText.ts).
+// Link lines in the "Resume & links" answer open on click.
 
 export type DvState = 'idle' | 'thinking' | 'speaking'
 
@@ -15,10 +19,10 @@ const H = 720
 const FPS = 24
 
 const SCRIPT: { at: number; who: string; text: string; state: DvState }[] = [
-  { at: 0, who: 'TRIAGE', text: 'picked ticket 1042 · import stuck for 31 s', state: 'thinking' },
-  { at: 1300, who: 'RUNNER', text: '3 checks · 12 rows · 0.8 s · no writes', state: 'thinking' },
+  { at: 0, who: 'TRIAGE', text: 'picked ticket 1042, an import stuck for 31 s', state: 'thinking' },
+  { at: 1300, who: 'RUNNER', text: '3 checks, 12 rows, 0.8 s, no writes', state: 'thinking' },
   { at: 2700, who: 'VERDICT', text: 'not ours: the upstream call timed out at 30 s', state: 'speaking' },
-  { at: 4100, who: 'DIGEST', text: 'posted to the board · ring back to idle', state: 'speaking' },
+  { at: 4100, who: 'DIGEST', text: 'posted to the board, ring back to idle', state: 'speaking' },
 ]
 const DONE_AT = 5600
 
@@ -29,9 +33,8 @@ const STAFF = [
   { id: 'AUTOPSY', job: 'replays a run step by step' },
 ]
 
-// The prompts a visitor can pick. Answers are about Devak and are true. A line with a url is a link.
+// The prompts a visitor can pick. A line with a url is a link.
 interface Line {
-  who: string
   text: string
   url?: string
 }
@@ -39,41 +42,27 @@ interface Prompt {
   label: string
   lines: Line[]
 }
+
+function linkLines(): Line[] {
+  const L = PROFILE.links
+  const lines: Line[] = []
+  if (L.resume) lines.push({ text: 'Resume (PDF)', url: /^https?:/.test(L.resume) ? L.resume : `./${L.resume}` })
+  if (L.email) lines.push({ text: `Email: ${L.email}`, url: `mailto:${L.email}` })
+  if (L.linkedin) lines.push({ text: `LinkedIn: ${L.linkedin.replace(/^https?:\/\/(www\.)?/, '')}`, url: L.linkedin })
+  lines.push({ text: `GitHub: ${L.github.replace(/^https?:\/\//, '')}`, url: L.github })
+  lines.push({ text: `Home base: ${L.home.replace(/^https?:\/\/|\/$/g, '')}`, url: L.home })
+  return lines
+}
+
 const PROMPTS: Prompt[] = [
-  {
-    label: 'Who is Devak?',
-    lines: [
-      { who: 'D.V', text: 'Devak Mehta, AI engineer. One laptop with an integrated GPU: decision models, a voice puck, a hand-tracked lab, and me.' },
-      { who: 'D.V', text: 'Own code, vendored models, nothing leaves the machine. Every build ships with one measured number.' },
-    ],
-  },
-  {
-    label: 'Building now',
-    lines: [
-      { who: 'D.V', text: "The puck's microphone and wake word are next on the bench." },
-      { who: 'D.V', text: 'Snake gets a ranking head, the way Tetris did; the pyramid moves to a spare monitor.' },
-      { who: 'D.V', text: 'And me: new staff as the work needs them.' },
-    ],
-  },
-  {
-    label: 'The puck',
-    lines: [
-      { who: 'D.V', text: 'A talking assistant on the desk: wake word, question, answer through the model on the laptop.' },
-      { who: 'D.V', text: 'Its 16-light ring shows listening, thinking, speaking. Audio never leaves the local network.' },
-    ],
-  },
-  {
-    label: 'Follow Devak',
-    lines: [
-      { who: 'GITHUB', text: 'github.com/devakmmm', url: 'https://github.com/devakmmm' },
-      { who: 'HOME', text: 'devakmmm.github.io · one page per build', url: 'https://devakmmm.github.io/' },
-    ],
-  },
+  { label: 'Who is Devak?', lines: PROFILE.answers.who.map((text) => ({ text })) },
+  { label: "What he's built", lines: PROFILE.answers.built.map((text) => ({ text })) },
+  { label: 'Building now', lines: PROFILE.answers.now.map((text) => ({ text })) },
+  { label: PROFILE.links.resume ? 'Resume & links' : 'Contact & links', lines: linkLines() },
 ]
-// answer timing: a short think, then one line per step, then hold before idle
-const ANSWER_THINK = 500
-const ANSWER_STEP = 420
-const ANSWER_HOLD = 1400
+// answer timing: a short think, then one line per step
+const ANSWER_THINK = 450
+const ANSWER_STEP = 380
 
 const INK = '#f4f1ea'
 const MUTED = 'rgba(244,241,234,.55)'
@@ -83,10 +72,12 @@ const CYAN = '#7fd0ff'
 const FONT = 'Helvetica Neue, system-ui, sans-serif'
 const MONO = 'ui-monospace, Menlo, Consolas, monospace'
 
-// the pill's hit box, in canvas px; the prompt chips run to its right
+// hit boxes and layout, in canvas px
 const PILL = { x: 28, y: 232, w: 300, h: 44 }
-const CHIP = { x: 352, size: 12, spacing: 3, pad: 22, gap: 12 }
-const LOG = { x: 28, textX: 118, line: 626, first: 644, step: 24 }
+const CHIP = { x: 352, size: 15, pad: 22, gap: 12 }
+const COLS = { x: 352, w: 190, gap: 14, y: 306, h: 296 }
+const CARD = { x: 352, y: 306, w: 802, h: 396, pad: 28, size: 18, lead: 28, para: 8 }
+const LOG = { x: 28, textX: 118, line: 626, first: 652, step: 24 }
 
 interface Box {
   x: number
@@ -133,17 +124,19 @@ export function createDvBoard() {
   let runStart = -1
   let runs = 0
   let stepsFired = 0
-  let answer: Prompt | null = null
+  let shown: number | null = null // the prompt whose answer card is open
+  let answering: number | null = null // the prompt being typed (its chip reads RUNNING)
   let answerStart = 0
   let answerFired = 0
-  let hoverKey: string | null = null // 'pill' | 'chip:i' | 'link:i'
+  let hoverKey: string | null = null // 'pill' | 'chip:i' | 'link:i' | 'close'
   let theta = 0
   let lastDraw = 0
   let lastTick = 0
   let cols: { name: string; cards: string[] }[] = fresh()
-  let lines: Line[] = []
+  let lines: { who: string; text: string }[] = []
   let chips: Box[] = []
   let links: (Box & { url: string })[] = []
+  let closeBox: Box | null = null
 
   function fresh() {
     return [
@@ -164,17 +157,18 @@ export function createDvBoard() {
     if (runStart >= 0) return
     runStart = now
     stepsFired = 0
-    answer = null
+    shown = null
+    answering = null
     lines = []
     cols = fresh()
   }
 
   function ask(i: number, now: number) {
     if (runStart >= 0 || !PROMPTS[i]) return
-    answer = PROMPTS[i]
+    shown = i
+    answering = i
     answerStart = now
     answerFired = 0
-    lines = []
   }
 
   function tick(now: number) {
@@ -199,16 +193,16 @@ export function createDvBoard() {
         )
         emit('dv-runs', runs)
       }
-    } else if (answer) {
+    } else if (answering !== null) {
+      const p = PROMPTS[answering]
       const t = now - answerStart
       if (t < ANSWER_THINK) {
         setState('thinking')
       } else {
-        const due = Math.min(answer.lines.length, 1 + Math.floor((t - ANSWER_THINK) / ANSWER_STEP))
-        while (answerFired < due) lines.push(answer.lines[answerFired++])
+        answerFired = Math.min(p.lines.length, 1 + Math.floor((t - ANSWER_THINK) / ANSWER_STEP))
         setState('speaking')
-        if (answerFired >= answer.lines.length && t > ANSWER_THINK + answer.lines.length * ANSWER_STEP + ANSWER_HOLD) {
-          answer = null
+        if (answerFired >= p.lines.length && t > ANSWER_THINK + p.lines.length * ANSWER_STEP + 300) {
+          answering = null
           setState('idle')
         }
       }
@@ -225,8 +219,8 @@ export function createDvBoard() {
     ctx.closePath()
   }
 
-  function label(text: string, x: number, y: number, size: number, color: string, opts: { spacing?: number; font?: string; align?: CanvasTextAlign; upper?: boolean } = {}) {
-    ctx.font = `${size}px ${opts.font || FONT}`
+  function label(text: string, x: number, y: number, size: number, color: string, opts: { spacing?: number; font?: string; align?: CanvasTextAlign; upper?: boolean; weight?: number } = {}) {
+    ctx.font = `${opts.weight ? `${opts.weight} ` : ''}${size}px ${opts.font || FONT}`
     ctx.fillStyle = color
     ctx.textAlign = opts.align || 'left'
     ctx.textBaseline = 'alphabetic'
@@ -249,9 +243,10 @@ export function createDvBoard() {
     }
   }
 
-  // the width label() will draw for a letter-spaced string
-  function spacedWidth(text: string, size: number, spacing: number) {
-    ctx.font = `${size}px ${FONT}`
+  // the width label() will draw, letter-spacing included
+  function textWidth(text: string, size: number, spacing = 0, font = FONT) {
+    ctx.font = `${size}px ${font}`
+    if (!spacing) return ctx.measureText(text).width
     let total = 0
     for (const ch of text) total += ctx.measureText(ch).width + spacing
     return total
@@ -259,15 +254,15 @@ export function createDvBoard() {
 
   // a one-line label that shrinks its font until it fits maxW
   function fit(text: string, x: number, y: number, size: number, color: string, maxW: number) {
-    ctx.font = `${size}px ${FONT}`
-    const w = ctx.measureText(text).width
+    const w = textWidth(text, size)
     label(text, x, y, w > maxW ? Math.max(11, Math.floor((size * maxW) / w)) : size, color)
   }
 
+  // chips keep one width whether they show their question or RUNNING, so nothing jumps
   function layoutChips() {
     let x = CHIP.x
     chips = PROMPTS.map((p) => {
-      const w = spacedWidth(p.label.toUpperCase(), CHIP.size, CHIP.spacing) + CHIP.pad * 2
+      const w = Math.max(textWidth(p.label, CHIP.size), textWidth('RUNNING', 13, 3)) + CHIP.pad * 2
       const box = { x, y: PILL.y, w, h: PILL.h }
       x += w + CHIP.gap
       return box
@@ -278,11 +273,12 @@ export function createDvBoard() {
     return x >= b.x - m && x <= b.x + b.w + m && y >= b.y - m && y <= b.y + b.h + m
   }
 
-  // what sits under a canvas point: the pill, a chip, a link line, or nothing
+  // what sits under a canvas point
   function target(x: number, y: number): string | null {
+    if (closeBox && inBox(closeBox, x, y, 6)) return 'close'
+    for (let i = 0; i < links.length; i++) if (inBox(links[i], x, y, 4)) return `link:${i}`
     if (inBox(PILL, x, y, 8)) return 'pill'
     for (let i = 0; i < chips.length; i++) if (inBox(chips[i], x, y, 4)) return `chip:${i}`
-    for (let i = 0; i < links.length; i++) if (inBox(links[i], x, y, 4)) return `link:${i}`
     return null
   }
 
@@ -303,16 +299,84 @@ export function createDvBoard() {
     }
   }
 
+  function drawKanban() {
+    cols.forEach((col, i) => {
+      const x = COLS.x + i * (COLS.w + COLS.gap)
+      ctx.strokeStyle = LINE
+      ctx.lineWidth = 1.5
+      roundRect(x, COLS.y, COLS.w, COLS.h, 12)
+      ctx.stroke()
+      label(`${col.name} · ${col.cards.length}`, x + 14, COLS.y + 26, 11, MUTED, { spacing: 2.5, upper: true })
+      let cy = COLS.y + 44
+      for (const c of col.cards.slice(0, 6)) {
+        ctx.fillStyle = 'rgba(244,241,234,.07)'
+        roundRect(x + 12, cy, COLS.w - 24, 30, 6)
+        ctx.fill()
+        ctx.save()
+        ctx.beginPath()
+        ctx.rect(x + 12, cy, COLS.w - 24, 30)
+        ctx.clip()
+        label(c, x + 22, cy + 20, 13, INK)
+        ctx.restore()
+        cy += 38
+      }
+      if (col.cards.length > 6) label(`+${col.cards.length - 6} more`, x + 14, cy + 14, 11, MUTED)
+    })
+  }
+
+  // the answer card: over the kanban and the log, large type, lines typed in; link lines underlined
+  function drawAnswer(i: number) {
+    const p = PROMPTS[i]
+    ctx.fillStyle = '#0f131a'
+    roundRect(CARD.x, CARD.y, CARD.w, CARD.h, 14)
+    ctx.fill()
+    ctx.strokeStyle = 'rgba(201,169,97,.55)'
+    ctx.lineWidth = 1.5
+    ctx.stroke()
+    label(p.label, CARD.x + CARD.pad, CARD.y + 40, 16, ACCENT, { weight: 600 })
+    const closeW = textWidth('Close', 14)
+    closeBox = { x: CARD.x + CARD.w - CARD.pad - closeW, y: CARD.y + 22, w: closeW, h: 24 }
+    label('Close', closeBox.x, CARD.y + 40, 14, hoverKey === 'close' ? INK : MUTED)
+
+    const maxW = CARD.w - CARD.pad * 2
+    let y = CARD.y + 82
+    const shownLines = answering === i ? answerFired : p.lines.length
+    ctx.font = `${CARD.size}px ${FONT}`
+    for (const l of p.lines.slice(0, shownLines)) {
+      const rows = wrapText(l.text, maxW, (s) => ctx.measureText(s).width)
+      for (const row of rows) {
+        if (y > CARD.y + CARD.h - 16) break
+        if (l.url) {
+          const k = `link:${links.length}`
+          const hot = hoverKey === k
+          label(row, CARD.x + CARD.pad, y, CARD.size, hot ? INK : ACCENT)
+          ctx.font = `${CARD.size}px ${FONT}`
+          const w = ctx.measureText(row).width
+          ctx.strokeStyle = hot ? INK : 'rgba(201,169,97,.7)'
+          ctx.lineWidth = 1
+          ctx.beginPath()
+          ctx.moveTo(CARD.x + CARD.pad, y + 5)
+          ctx.lineTo(CARD.x + CARD.pad + w, y + 5)
+          ctx.stroke()
+          links.push({ x: CARD.x + CARD.pad, y: y - 20, w, h: 28, url: l.url })
+        } else {
+          label(row, CARD.x + CARD.pad, y, CARD.size, INK)
+        }
+        ctx.font = `${CARD.size}px ${FONT}`
+        y += CARD.lead
+      }
+      y += CARD.para
+    }
+  }
+
   function draw(now: number, dt: number) {
     const running = runStart >= 0
     if (chips.length === 0) layoutChips()
+    links = []
+    closeBox = null
     ctx.clearRect(0, 0, W, H)
     ctx.fillStyle = '#0b0e13'
     ctx.fillRect(0, 0, W, H)
-    if (hoverKey === 'pill' && !running) {
-      ctx.fillStyle = 'rgba(244,241,234,.035)'
-      ctx.fillRect(0, 0, W, H)
-    }
 
     // the menu bar: whose laptop this is, and the visitor's own clock
     ctx.fillStyle = 'rgba(244,241,234,.05)'
@@ -322,39 +386,47 @@ export function createDvBoard() {
 
     // header
     label('D.V · session board', 28, 52, 15, ACCENT, { spacing: 4, upper: true })
-    label(`Ops floor · ${state === 'idle' ? 'all quiet' : state}`, 28, 90, 26, INK)
-    label('LIVE · 3 sessions · 18 tickets', 940, 56, 14, MUTED, { align: 'right' })
-    label('0 alerts · read-only · nothing leaves the machine', 940, 80, 14, MUTED, { align: 'right' })
+    label(`Ops floor · ${stateWord(state)}`, 28, 90, 26, INK)
+    label('3 sessions running, 18 tickets', 940, 56, 14, MUTED, { align: 'right' })
+    label('0 alerts, read-only checks', 940, 80, 14, MUTED, { align: 'right' })
     drawGlobe(1050, 90, 62, now, dt)
 
     // what this is, in two lines; each shrinks to fit the band left of the globe
-    fit('D.V is the assistant I built: it triages a ticket, runs the checks, files the pull request and posts the verdict here.', 28, 150, 16, INK, 930)
-    fit("I keep adding staff to it. This is a look-alike with invented data; the real one runs on my laptop, and the puck's ring follows it.", 28, 178, 16, MUTED, 930)
+    fit('D.V is an assistant I built to work tickets with me. It investigates, runs read-only checks and helps me prepare the pull request.', 28, 150, 16, INK, 930)
+    fit('This copy runs on invented tickets. Ask it about me with the buttons below.', 28, 178, 16, MUTED, 930)
 
-    // the pill
-    const pulse = running ? 0 : (Math.sin(now / 300) + 1) / 2
-    ctx.strokeStyle = `rgba(201,169,97,${0.25 + pulse * 0.35})`
-    ctx.lineWidth = 8
-    roundRect(PILL.x - 4, PILL.y - 4, PILL.w + 8, PILL.h + 8, 26)
-    ctx.stroke()
+    // the pill: runs the demo investigation
+    // the pulsing halo invites the first run only; after that the pill sits still
+    if (!running && runs === 0 && shown === null) {
+      const pulse = (Math.sin(now / 300) + 1) / 2
+      ctx.strokeStyle = `rgba(201,169,97,${0.25 + pulse * 0.35})`
+      ctx.lineWidth = 8
+      roundRect(PILL.x - 4, PILL.y - 4, PILL.w + 8, PILL.h + 8, 26)
+      ctx.stroke()
+    }
     ctx.strokeStyle = ACCENT
     ctx.lineWidth = 1.5
     ctx.fillStyle = hoverKey === 'pill' && !running ? 'rgba(201,169,97,.18)' : 'rgba(201,169,97,.06)'
     roundRect(PILL.x, PILL.y, PILL.w, PILL.h, 22)
     ctx.fill()
     ctx.stroke()
-    label(running ? 'working…' : runs === 0 ? 'click me · wake D.V' : 'again', PILL.x + 22, PILL.y + 29, 14, running ? MUTED : ACCENT, { spacing: 3, upper: true })
+    const pill = pillLabel(running, runs)
+    if (running) label(pill, PILL.x + 22, PILL.y + 28, 13, ACCENT, { spacing: 3 })
+    else label(pill, PILL.x + 22, PILL.y + 28, 16, ACCENT, { weight: 600 })
 
-    // the prompt chips: ask D.V about Devak
+    // the prompt chips: ask D.V about Devak; the one being answered reads RUNNING
     chips.forEach((c, i) => {
-      const hot = hoverKey === `chip:${i}` && !running
-      ctx.strokeStyle = hot ? ACCENT : LINE
+      const text = chipLabel(PROMPTS[i].label, i, answering)
+      const isRunning = text === 'RUNNING'
+      const hot = (hoverKey === `chip:${i}` && !running) || shown === i
+      ctx.strokeStyle = hot || isRunning ? ACCENT : LINE
       ctx.lineWidth = 1.5
-      ctx.fillStyle = hot ? 'rgba(201,169,97,.12)' : 'rgba(244,241,234,.03)'
+      ctx.fillStyle = isRunning ? 'rgba(201,169,97,.16)' : hot ? 'rgba(201,169,97,.10)' : 'rgba(244,241,234,.03)'
       roundRect(c.x, c.y, c.w, c.h, 22)
       ctx.fill()
       ctx.stroke()
-      label(PROMPTS[i].label, c.x + CHIP.pad, c.y + 29, CHIP.size, hot ? ACCENT : INK, { spacing: CHIP.spacing, upper: true })
+      if (isRunning) label(text, c.x + CHIP.pad, c.y + 28, 13, ACCENT, { spacing: 3 })
+      else label(text, c.x + CHIP.pad, c.y + 28, CHIP.size, hot ? ACCENT : INK)
     })
 
     // staff cards
@@ -370,61 +442,25 @@ export function createDvBoard() {
       y += 74
     }
 
-    // kanban
-    const colX = 352, colW = 190, colGap = 14, colY = 306, colH = 296
-    cols.forEach((col, i) => {
-      const x = colX + i * (colW + colGap)
-      ctx.strokeStyle = LINE
-      ctx.lineWidth = 1.5
-      roundRect(x, colY, colW, colH, 12)
-      ctx.stroke()
-      label(`${col.name} · ${col.cards.length}`, x + 14, colY + 26, 11, MUTED, { spacing: 2.5, upper: true })
-      let cy = colY + 44
-      for (const c of col.cards.slice(0, 6)) {
-        ctx.fillStyle = 'rgba(244,241,234,.07)'
-        roundRect(x + 12, cy, colW - 24, 30, 6)
-        ctx.fill()
-        ctx.save()
-        ctx.beginPath()
-        ctx.rect(x + 12, cy, colW - 24, 30)
-        ctx.clip()
-        label(c, x + 22, cy + 20, 13, INK)
-        ctx.restore()
-        cy += 38
-      }
-      if (col.cards.length > 6) label(`+${col.cards.length - 6} more`, x + 14, cy + 14, 11, MUTED)
-    })
-
-    // the log: the last three lines; link lines are drawn in gold, underlined, and remembered for clicks
-    ctx.strokeStyle = LINE
-    ctx.beginPath()
-    ctx.moveTo(LOG.x, LOG.line)
-    ctx.lineTo(W - 28, LOG.line)
-    ctx.stroke()
-    links = []
-    if (lines.length === 0) {
-      label(`› idle. ${runs > 0 ? 'ticket 1042 closed. ' : ''}ask me about Devak, or click the pill.`, LOG.x, LOG.first + 12, 14, MUTED, { font: MONO })
+    if (shown !== null) {
+      drawAnswer(shown)
     } else {
-      let ly = LOG.first
-      for (const l of lines.slice(-3)) {
-        label(l.who, LOG.x, ly, 14, l.url ? ACCENT : CYAN, { font: MONO })
-        if (l.url) {
-          const text = `· ${l.text}`
-          const hot = hoverKey === `link:${links.length}`
-          label(text, LOG.textX, ly, 14, hot ? INK : ACCENT, { font: MONO })
-          ctx.font = `14px ${MONO}`
-          const w = ctx.measureText(text).width
-          ctx.strokeStyle = hot ? INK : ACCENT
-          ctx.lineWidth = 1
-          ctx.beginPath()
-          ctx.moveTo(LOG.textX, ly + 4)
-          ctx.lineTo(LOG.textX + w, ly + 4)
-          ctx.stroke()
-          links.push({ x: LOG.textX, y: ly - 15, w, h: 22, url: l.url })
-        } else {
+      drawKanban()
+      // the log: the investigation's last three lines
+      ctx.strokeStyle = LINE
+      ctx.beginPath()
+      ctx.moveTo(LOG.x, LOG.line)
+      ctx.lineTo(W - 28, LOG.line)
+      ctx.stroke()
+      if (lines.length === 0) {
+        label(`› ${runs > 0 ? 'Ticket 1042 closed. ' : ''}Pick a question above, or watch D.V work.`, LOG.x, LOG.first, 14, MUTED, { font: MONO })
+      } else {
+        let ly = LOG.first - 8
+        for (const l of lines.slice(-3)) {
+          label(l.who, LOG.x, ly, 14, CYAN, { font: MONO })
           label(`· ${l.text}`, LOG.textX, ly, 14, INK, { font: MONO })
+          ly += LOG.step
         }
-        ly += LOG.step
       }
     }
     texture.needsUpdate = true
@@ -451,9 +487,16 @@ export function createDvBoard() {
     click(u: number, v: number) {
       const key = target(u * W, v * H)
       const now = performance.now()
-      if (key === 'pill' || (key === null && runs === 0 && !answer)) start(now)
+      if (key === 'close') {
+        shown = null
+        answering = null
+        setState('idle')
+      } else if (key && key.startsWith('link:')) {
+        const url = links[Number(key.slice(5))].url
+        if (url.startsWith('mailto:') || url.startsWith('./')) window.location.href = url
+        else window.open(url, '_blank', 'noopener,noreferrer')
+      } else if (key === 'pill' || (key === null && runs === 0 && shown === null)) start(now)
       else if (key && key.startsWith('chip:')) ask(Number(key.slice(5)), now)
-      else if (key && key.startsWith('link:')) window.open(links[Number(key.slice(5))].url, '_blank', 'noopener,noreferrer')
     },
     running() {
       return runStart >= 0

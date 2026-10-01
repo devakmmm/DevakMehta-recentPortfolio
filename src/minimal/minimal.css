@@ -1,0 +1,74 @@
+/* The minimalist page: one readable column in the desk's sage and ink. The only flourish is the name in
+   the desk's hand-lettered face; everything else is the reader's own system font, so it loads with
+   nothing to fetch but one small font file. */
+@font-face { font-family: 'Mansalva'; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/mansalva-400.woff2') format('woff2'); }
+
+:root {
+  --ground: #eef0e7;
+  --ink: #1f261f;
+  --muted: #56604f;
+  --line: #cfd5c4;
+  --accent: #3f6a45;
+  --btn-ink: #eef0e7;
+  --hand: 'Mansalva', 'Segoe Print', 'Bradley Hand', cursive;
+  --text: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ground: #141813;
+    --ink: #e8ebe2;
+    --muted: #a3ab9b;
+    --line: #2d342b;
+    --accent: #9cc4a0;
+    --btn-ink: #141813;
+    color-scheme: dark;
+  }
+}
+
+html { background: var(--ground); }
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font: 17px/1.6 var(--text);
+  padding-inline: 20px;
+}
+.mn { max-width: 600px; margin: 0 auto; padding-block: 56px 72px; }
+
+.mn-head { margin-bottom: 18px; }
+.mn-name { font: 400 clamp(40px, 8vw, 56px)/1.05 var(--hand); margin: 0; }
+.mn-role { margin: 6px 0 0; font-size: 19px; color: var(--muted); }
+
+.mn-reach { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px; margin: 0 0 36px; }
+.mn-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--btn-ink);
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 600;
+}
+.mn-btn:hover { opacity: 0.88; }
+
+.mn-intro p { margin: 0 0 14px; }
+
+section { margin-top: 40px; }
+h2 { font-size: 19px; font-weight: 600; margin: 0 0 14px; }
+ul { list-style: none; margin: 0; padding: 0; }
+.mn-builds li { display: flex; flex-direction: column; gap: 2px; margin-bottom: 16px; }
+.mn-builds a, .mn-builds b { font-weight: 600; color: var(--ink); }
+.mn-builds a { text-decoration-color: var(--line); }
+.mn-builds a:hover { text-decoration-color: var(--ink); }
+.mn-builds span { color: var(--muted); }
+.mn-now li { margin-bottom: 10px; padding-left: 16px; position: relative; }
+.mn-now li::before { content: ''; position: absolute; left: 0; top: 0.72em; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+
+a { color: var(--accent); text-underline-offset: 3px; }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+
+.mn-foot { display: flex; flex-wrap: wrap; gap: 20px; margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--line); font-size: 15px; }

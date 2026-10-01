@@ -4,7 +4,8 @@ import { DoubleSide, Vector2 } from 'three'
 
 // 全屏胶片噪点蒙层（移植自 speakio 首页）：独立 Canvas + multiply 混合，
 // frameloop="demand" 节流到 ~0.8fps，几乎不占性能。
-const CONFIG = { zIndex: 100, opacity: 0.5, alpha: 1 }
+// zIndex 5: over the 3D scene, under the page text (content is 10), so the grain never sits on words
+const CONFIG = { zIndex: 5, opacity: 0.32, alpha: 1 }
 const SHADER_VERSION = 'noise-v1'
 const num = (v: number) => v.toFixed(3)
 
@@ -47,7 +48,7 @@ const fragmentShader = /* glsl */ `
     b += noise(pixel / uResolution.y * 60.0 + 1000.0*hash(vec2(frame * 0.2))) * 0.5;
     b = clamp(b, 0.0, 1.0);
     b = smoothstep(0.1, 0.12, b);
-    vec3 color = mix(vec3(0.2, 0.4, 0.45), vec3(1.0, 1.4, 1.3), b);
+    vec3 color = mix(vec3(0.46, 0.45, 0.42), vec3(1.0, 1.4, 1.3), b); // neutral, not teal: no coloured specks
     color += vec3(mask);
     color *= hash(pixel / uResolution.y * 200.0 + 1000.0*hash(vec2(frame * 0.3))) * 4.0;
     color = clamp(color, 0.0, 1.0);

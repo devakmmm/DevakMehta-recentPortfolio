@@ -6,10 +6,12 @@ interface StoreState {
   hovered: string | null // 悬停的 domain id
   entered: boolean // 是否已通过入场
   pov: boolean // first person at the laptop screen (scene/Scene.tsx flies the camera in)
+  deskFailed: boolean // the 3D desk could not load (App offers the one-page version)
   setActive: (id: string | null) => void
   setHovered: (id: string | null) => void
   enter: () => void
   setPov: (on: boolean) => void
+  setDeskFailed: () => void
 }
 
 export const useStore = create<StoreState>((set) => ({
@@ -17,10 +19,12 @@ export const useStore = create<StoreState>((set) => ({
   hovered: null,
   entered: false,
   pov: false,
+  deskFailed: false,
   setActive: (id) => set({ active: id }),
   setHovered: (id) => set({ hovered: id }),
   enter: () => set({ entered: true }),
   setPov: (on) => set({ pov: on }),
+  setDeskFailed: () => set({ deskFailed: true }),
 }))
 
 // 开发期调试钩子：可在 console 用 __store.getState().setActive('ads')
