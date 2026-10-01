@@ -58,6 +58,27 @@ test('no chains of middle dots (two or more in one piece of copy)', () => {
   assert.deepEqual(hits, [])
 })
 
+// Devak, 2026-09-30: each build's description shows what it is and how it helps, not how it was built.
+const HOW_IT_WAS_BUILT = [
+  /\d[\d,.]*\s?[MK]-?parameter/i, // parameter counts
+  /\b\d+ tests\b/i, // test counts
+  /calibrat/i, // calibration talk
+  /right about \d+%/i, // "right about 34% of the time"
+  /trained in (under|about) \d+/i, // training times
+  /\d+\s?(to \d+\s?)?ms per move/i, // latency
+  /\b\d[\d,]* bytes\b/i, // build sizes
+]
+
+test('build descriptions say what each build does, not how it was built', () => {
+  const copy = FILES.filter((f) => !/App\.tsx|index\.html|render\.ts/.test(f))
+  const hits = copy.flatMap((f) =>
+    visibleLines(f)
+      .filter((l) => HOW_IT_WAS_BUILT.some((re) => re.test(l.line)))
+      .map((l) => `${f}:${l.n}: ${l.line.trim().slice(0, 90)}`)
+  )
+  assert.deepEqual(hits, [])
+})
+
 test('the first screen has no scroll cue and no sideways text', () => {
   const app = visibleLines('src/App.tsx').map((l) => l.line).join('\n')
   assert.doesNotMatch(app, /scroll-cue|SCROLL/, 'no "scroll" cue with a bar')

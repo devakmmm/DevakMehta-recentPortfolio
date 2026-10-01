@@ -1,21 +1,20 @@
 ---
 title: make-your-claude
 year: 2026
-role: hooks, tests
-tags: [Claude Code, hooks, MIT]
+role: hooks
+tags: [Claude Code, AI coding assistant, open source]
 link: https://github.com/devakmmm/make-your-claude
 ---
 
-Six small hooks for Claude Code. They make the agent stop and say whether it verified its claims,
-show a checklist before its first push, and warn when an edit deletes comments. They use only
-Python's standard library, have 24 tests, and were in daily use before they were published.
+Six free add-ons for Claude Code, an AI coding assistant. They make it check its own work at the
+moments where a confident mistake would cost the most.
 
-- A stop hook that asks the agent, once per turn, whether it made claims it can verify and where its evidence is
-- A push hook that holds the first plain `git push` per commit with a diff checklist, then lets the retry through. It does not yet catch `git -C <dir> push`
-- A comment hook that warns when an edit removed comments
-- A landed-check that re-reads a file after every edit
-- A read-only database guard that denies any raw `psql`
-- A vagueness gate for large multi-agent requests that name no file, ticket or error
+- Before it finishes, it has to say whether it verified what it claims
+- Before it pushes code, it gets a checklist to review its changes
+- When an edit deletes comments, it gets a warning
+- After every edit, it confirms the change actually landed in the file
+- It is stopped from running raw database commands
+- When a big request names no file, ticket or error, it is told to pin down the scope first
 
-Each hook exists because a prompt alone did not hold the line. A hook adds a check at the moment
-that matters. It is a nudge, not a lock.
+They are free and open source, for anyone who uses Claude Code. I used them every day before I
+published them.

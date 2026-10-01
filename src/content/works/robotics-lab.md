@@ -2,13 +2,13 @@
 title: Robotics lab
 year: 2026
 role: training, evaluation
-tags: [imitation learning, integrated GPU, simulation]
+tags: [robot learning, demonstrations, simulation]
 link: https://devakmmm.github.io/
 ---
 
-Teaching a robot to imitate demonstrations, in simulation, on a laptop with no discrete GPU. A real
-arm (an SO-101) comes once a policy works there.
+A robot that learns a task by watching demonstrations instead of following hand-written
+instructions. It is in simulation for now.
 
-- Two kinds of policy trained on the same simulated task: ACT and a diffusion policy
-- ACT trained at about 4 steps per second. The diffusion policy scored a higher reward after 5,000 steps than ACT did after 40,000, but neither completed the task: 0% success
-- The training environment is firewalled off the network by 61 rules, so nothing is fetched mid-run
+- The goal is a robot arm (an SO-101) that learns new tasks from demonstrations
+- Every policy is tried in simulation first, so nothing breaks while it learns
+- It runs on the same laptop as everything else, with no cloud

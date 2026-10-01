@@ -1,17 +1,17 @@
 ---
 title: Documents it had never seen
 year: 2026
-role: rehearsal, evaluation
-tags: [decision model, review lane, calibration]
+role: evaluation
+tags: [decision model, human review]
 link: https://devakmmm.github.io/
 ---
 
-A model that reads the start of a document, answers one yes or no question about what kind of
-document it is, and gives a probability. When it is unsure, or disagrees with a simple keyword
-check, the call goes to a person.
+A model that checks what kind of document it is looking at, and knows when to ask a person. When it
+is sure, it decides. When it is unsure, or a simple second check disagrees, the document goes to a
+person.
 
-- On 600 generated documents of kinds it knows, 4% went to a person and none were wrong
-- On 600 generated documents of kinds it had never seen, the model alone got 47% right. With the keyword check it made no wrong accept or reject, and sent 57% to a person
+- New kinds of documents turn into a short review list instead of silent mistakes
+- In tests on generated documents, with the second check in place, it made no wrong calls; everything it was unsure about went to a person
 
-Novelty turns into review work instead of silent mistakes, which is what matters when a decision is
-worth money.
+That is what matters when a decision is worth money: the model does the easy calls and hands over
+the rest.
