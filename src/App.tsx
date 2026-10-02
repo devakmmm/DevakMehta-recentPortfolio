@@ -65,6 +65,10 @@ function Hero({ lang }: { lang: Lang }) {
               {p}
             </motion.p>
           ))}
+          {/* a quiet hint to scroll: a mouse whose wheel slides down, no label */}
+          <motion.div className="scroll-mouse" style={{ y: bodyY }} aria-hidden="true">
+            <span className="scroll-mouse-wheel" />
+          </motion.div>
         </div>
       </motion.div>
     </section>

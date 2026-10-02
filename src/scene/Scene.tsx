@@ -715,7 +715,7 @@ function Post2({
     startBokeh: 4.0,
     startRange: 1.6,
     focusBokeh: 8.0,
-    focusRange: 0.10,
+    focusRange: 0.35, // metres: blur grows from 0 at the focus plane to full at this distance; 0.10 blurred most of the laptop
     startBlendFrame: 48,
     endBlendFrame: RESUME_FRAMES - 50, // 末节点附近回到"起始帧"景深档（原 250−50=200）
   }

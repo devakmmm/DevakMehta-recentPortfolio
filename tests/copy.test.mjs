@@ -79,8 +79,9 @@ test('build descriptions say what each build does, not how it was built', () => 
   assert.deepEqual(hits, [])
 })
 
-test('the first screen has no scroll cue and no sideways text', () => {
+// a mouse icon hinting at scroll is fine (Devak, 2026-10-02); a SCROLL label with a bar is not
+test('the first screen has no SCROLL label with a bar and no sideways text', () => {
   const app = visibleLines('src/App.tsx').map((l) => l.line).join('\n')
-  assert.doesNotMatch(app, /scroll-cue|SCROLL/, 'no "scroll" cue with a bar')
+  assert.doesNotMatch(app, /scroll-cue|SCROLL/, 'no "SCROLL" label with a bar')
   assert.doesNotMatch(app, /hm-right/, 'no vertical text down the side')
 })

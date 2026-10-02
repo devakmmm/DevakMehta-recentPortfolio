@@ -1657,3 +1657,35 @@ canvas {
 .desk-failed p { margin: 0; }
 /* the scene never painted: give the page the desk's sand so the hero text stays readable */
 body:has(.desk-failed) { background: #d6d3b8; }
+
+/* ---------- A mouse under the hero text: a quiet hint to scroll (no label, no bar) ----------
+   Fades with the hero; still for anyone who prefers reduced motion. The hero's bottom padding is
+   trimmed so the mouse fits on short laptop screens. */
+.hero { padding-bottom: 3vh; }
+.scroll-mouse {
+  position: relative;
+  width: 18px;
+  height: 28px;
+  margin: 14px auto 0;
+  border: 2px solid rgba(31, 38, 31, 0.7);
+  border-radius: 10px;
+}
+.scroll-mouse-wheel {
+  position: absolute;
+  left: 50%;
+  top: 5px;
+  width: 3px;
+  height: 6px;
+  margin-left: -1.5px;
+  border-radius: 2px;
+  background: rgba(31, 38, 31, 0.7);
+  animation: mouse-wheel 1.8s ease-in-out infinite;
+}
+@keyframes mouse-wheel {
+  0% { transform: translateY(0); opacity: 1; }
+  70% { transform: translateY(8px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scroll-mouse-wheel { animation: none; }
+}

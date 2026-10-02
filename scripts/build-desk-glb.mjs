@@ -301,7 +301,8 @@ scene.add(camera)
 const poses = [
   [0, [0.55, 0.95, 2.55], [0.02, 0.03, 0.0]],
   [50, [puckC[0] + 0.17, TOP + 0.21, puckC[2] + 0.36], puckC],
-  [100, [lapC[0] + 0.12, TOP + 0.31, lapC[2] + 0.60], lapC],
+  // the laptop is wide: pull back and aim right of it so it sits left of the frosted text panel
+  [100, [lapC[0] + 0.45, TOP + 0.53, lapC[2] + 1.32], [lapC[0] + 0.18, lapC[1], lapC[2]]],
   [150, [pyrC[0] + 0.15, TOP + 0.17, pyrC[2] + 0.38], pyrC],
   [200, [nbC[0] + 0.06, TOP + 0.36, nbC[2] + 0.42], nbC],
   [250, [cardC[0] + 0.10, TOP + 0.21, cardC[2] + 0.31], cardC],
